@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeBloc - Smart Time Blocking App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        work: '#6366f1',
+                        meeting: '#f59e0b',
+                        personal: '#ec4899',
+                        learning: '#10b981',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom styles that complement Tailwind */
+        .category-badge {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .time-block {
+            position: relative;
+            height: 60px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .quarter-hour-marker {
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background-color: #f3f4f6;
+        }
+        
+        .min-15 { top: 15px; }
+        .min-30 { top: 30px; }
+        .min-45 { top: 45px; }
+        
+        .task {
+            position: absolute;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        
+        .task.work { background-color: theme('colors.work'); }
+        .task.meeting { background-color: theme('colors.meeting'); }
+        .task.personal { background-color: theme('colors.personal'); }
+        .task.learning { background-color: theme('colors.learning'); }
+        
+        .task.completed { opacity: 0.7; }
+        .task.partial { opacity: 0.8; background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent); background-size: 10px 10px; }
+        .task.missed { opacity: 0.6; background-image: linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1) 75%, transparent 75%, transparent); background-size: 10px 10px; }
+        
+        .complete-task {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .complete-task:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .quick-add-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            z-index: 100;
+        }
+        
+        .quick-add-form {
+            display: none;
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            width: 300px;
+        }
+        
+        .quick-add-form.active {
+            display: block;
+        }
+        
+        .quick-add-options {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .quick-category-buttons, .quick-duration-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .quick-category {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+        
+        .quick-category.active {
+            border-color: #000;
+        }
+        
+        .quick-category.work { background-color: theme('colors.work'); }
+        .quick-category.meeting { background-color: theme('colors.meeting'); }
+        .quick-category.personal { background-color: theme('colors.personal'); }
+        .quick-category.learning { background-color: theme('colors.learning'); }
+        
+        .quick-duration {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            background: #f3f4f6;
+            font-size: 0.75rem;
+        }
+        
+        .quick-duration.active {
+            background: #6366f1;
+            color: white;
+        }
+        
+        .toast-notification {
+            position: fixed;
+            bottom: 1rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%);
+            background: #4b5563;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
+            transition: transform 0.3s ease-out;
+        }
+        
+        .toast-notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+        
+        .focus-timer {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        
+        .time-picker-container {
+            margin-top: 1rem;
+        }
+        
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .time-display-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .time-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .time-slider-container {
+            margin-bottom: 1rem;
+        }
+        
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .duration-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #f3f4f6;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
+        }
+        
+        .category-selector {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .category-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: none;
+            color: white;
+            cursor: pointer;
+        }
+        
+        .category-btn.work { background-color: theme('colors.work'); }
+        .category-btn.meeting { background-color: theme('colors.meeting'); }
+        .category-btn.personal { background-color: theme('colors.personal'); }
+        .category-btn.learning { background-color: theme('colors.learning'); }
+        
+        .category-btn.active {
+            box-shadow: 0 0 0 2px white, 0 0 0 4px currentColor;
+        }
+        
+        .task-completion-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            cursor: pointer;
+        }
+        
+        .task-completion-item.completed {
+            color: #10b981;
+        }
+        
+        .task-time {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+        
+        .progress-circle {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+        
+        .progress-circle-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50">
+    <div class="min-h-screen">
+        <div class="flex">
+            <!-- Sidebar -->
+            <div class="w-64 bg-white shadow-lg p-6 hidden md:block h-screen overflow-auto">
+                <div class="flex items-center mb-8">
+                    <i class="bi bi-clock-fill text-indigo-600 mr-2 text-xl"></i>
+                    <span class="text-xl font-bold">TimeBloc</span>
+                </div>
+                
+                <nav class="mb-8">
+                    <a href="#" class="flex items-center px-4 py-2 mb-2 text-indigo-600 bg-indigo-50 rounded-lg">
+                        <i class="bi bi-calendar-week mr-3"></i> Calendar
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 mb-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <i class="bi bi-graph-up mr-3"></i> Insights
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 mb-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <i class="bi bi-hourglass-split mr-3"></i> Focus Mode
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 mb-2 text-gray-600 hover:bg-gray-100 rounded-lg">
+                        <i class="bi bi-gear mr-3"></i> Settings
+                    </a>
+                </nav>
+                
+                <div class="mb-8">
+                    <h6 class="text-xs font-bold text-gray-500 uppercase mb-4">Categories</h6>
+                    <div class="mb-3 flex items-center">
+                        <span class="category-badge bg-work"></span>
+                        <span>Work</span>
+                    </div>
+                    <div class="mb-3 flex items-center">
+                        <span class="category-badge bg-meeting"></span>
+                        <span>Meetings</span>
+                    </div>
+                    <div class="mb-3 flex items-center">
+                        <span class="category-badge bg-personal"></span>
+                        <span>Personal</span>
+                    </div>
+                    <div class="mb-3 flex items-center">
+                        <span class="category-badge bg-learning"></span>
+                        <span>Learning</span>
+                    </div>
+                </div>
+                
+                <div>
+                    <h6 class="text-xs font-bold text-gray-500 uppercase mb-4">Today's Progress</h6>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm">Completed</span>
+                        <span class="text-sm font-bold" id="completedTasksPercent">65%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 65%"></div>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        <i class="bi bi-check-circle-fill text-green-500 mr-1"></i>
+                        <span id="completedTasksCount">8/12</span> tasks completed
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="flex-1 p-6 h-screen overflow-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h1 class="text-2xl font-bold">My Schedule</h1>
+                        <p class="text-gray-500" id="currentDate">Wednesday, March 15, 2023</p>
+                    </div>
+                    <div class="flex">
+                        <button class="p-2 rounded-lg border border-gray-300 mr-2" id="prevDay">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="p-2 rounded-lg border border-gray-300 mr-2" id="nextDay">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg" id="todayBtn">
+                            Today
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-5 mb-4">
+                    <div class="text-center font-medium text-gray-600">Monday</div>
+                    <div class="text-center font-medium text-gray-600">Tuesday</div>
+                    <div class="text-center font-medium text-gray-600 bg-gray-100 py-1 rounded">Wednesday</div>
+                    <div class="text-center font-medium text-gray-600">Thursday</div>
+                    <div class="text-center font-medium text-gray-600">Friday</div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <div class="calendar-container" id="calendarContainer">
+                        <!-- Time blocks will be generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Quick Add Task -->
+                <div class="quick-add-container">
+                    <div class="quick-add-form" id="quickAddForm">
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="quickTaskTitle" placeholder="Task name + Enter">
+                        <div class="quick-add-options">
+                            <div class="quick-category-buttons">
+                                <button type="button" class="quick-category work active" data-category="work"></button>
+                                <button type="button" class="quick-category meeting" data-category="meeting"></button>
+                                <button type="button" class="quick-category personal" data-category="personal"></button>
+                                <button type="button" class="quick-category learning" data-category="learning"></button>
+                            </div>
+
+                            <div class="quick-duration-buttons">
+                                <button type="button" class="quick-duration" data-duration="15">15m</button>
+                                <button type="button" class="quick-duration active" data-duration="30">30m</button>
+                                <button type="button" class="quick-duration" data-duration="60">1h</button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full p-4 shadow-lg flex items-center justify-center" id="quickAddBtn">
+                        <i class="bi bi-plus text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Sidebar - Insights -->
+            <div class="w-80 bg-white p-6 border-l border-gray-200 hidden lg:block h-screen overflow-auto">
+                <h2 class="text-xl font-bold mb-6">Insights & Focus</h2>
+
+                <!-- Today's Progress Card -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <h3 class="text-lg font-medium mb-4">Today's Progress</h3>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h4 class="flex items-baseline">
+                                <span class="text-3xl font-bold" id="completedTasksPercent">65</span>
+                                <span class="text-sm ml-1">%</span>
+                            </h4>
+                            <span class="text-gray-500 text-sm">Completed</span>
+                        </div>
+                        <div class="progress-circle">
+                            <canvas id="progressCircle" width="80" height="80"></canvas>
+                            <div class="progress-circle-text">
+                                <span id="completedTasksCount2">8/12</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4" id="taskCompletionList">
+                        <!-- Task completion items will be generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Productivity Score -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <h3 class="text-lg font-medium">Productivity Score</h3>
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Good</span>
+                    </div>
+                    <h2 class="text-3xl font-bold">85<span class="text-lg font-normal">/100</span></h2>
+                    <div class="w-full bg-gray-200 rounded-full h-2 my-3">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 85%"></div>
+                    </div>
+                    <p class="text-gray-500 text-sm">15% higher than last week</p>
+                </div>
+
+                <!-- Time Distribution -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <h3 class="text-lg font-medium mb-4">Time Distribution</h3>
+                    <div class="h-48">
+                        <canvas id="timeDistributionChart"></canvas>
+                    </div>
+                    <div class="mt-4" id="timeDistributionStats">
+                        <!-- Time distribution stats will be generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Focus Mode -->
+                <div class="bg-white rounded-xl shadow-sm p-4 mb-6">
+                    <h3 class="text-lg font-medium mb-4">Focus Mode</h3>
+                    <div class="text-center">
+                        <div class="focus-timer text-4xl font-bold mb-2" id="focusTimer">25:00</div>
+                        <p class="text-gray-500 mb-4">Pomodoro Timer</p>
+                        <button class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg" id="focusStartBtn">Start</button>
+                    </div>
+                </div>
+
+                <!-- AI Recommendations -->
+                <div class="bg-white rounded-xl shadow-sm p-4">
+                    <h3 class="text-lg font-medium mb-4 flex items-center">
+                        <i class="bi bi-lightning-fill text-amber-500 mr-2"></i>
+                        Smart Recommendations
+                    </h3>
+                    <div class="mb-4 pb-3 border-b border-gray-100">
+                        <p class="text-sm">Your most productive time is between <span class="font-medium">9 AM - 11 AM</span>. Schedule important tasks during this window.</p>
+                    </div>
+                    <div class="mb-4 pb-3 border-b border-gray-100">
+                        <p class="text-sm">You tend to miss <span class="font-medium">afternoon meetings</span>. Consider rescheduling them to mornings.</p>
+                    </div>
+                    <div>
+                        <p class="text-sm">Taking short breaks improves your productivity. Add more 15-min breaks to your schedule.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for adding new task -->
+    <div id="addTaskModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+                <h3 class="text-xl font-bold text-gray-800">Add New Task</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500" onclick="closeAddTaskModal()">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <form id="addTaskForm">
+                    <div class="mb-4">
+                        <label for="taskTitle" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="taskTitle" placeholder="Enter task title" required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                        <div class="time-picker-container">
+                            <div class="time-display">
+                                <div class="time-display-item">
+                                    <span id="startTimeDisplay" class="text-lg font-medium">9:00 AM</span>
+                                    <span class="time-label">Start</span>
+                                </div>
+                                <div class="time-separator text-gray-400">to</div>
+                                <div class="time-display-item">
+                                    <span id="endTimeDisplay" class="text-lg font-medium">9:30 AM</span>
+                                    <span class="time-label">End</span>
+                                </div>
+                            </div>
+                            <div class="time-slider-container">
+                                <div class="time-labels">
+                                    <span>8 AM</span>
+                                    <span>12 PM</span>
+                                    <span>4 PM</span>
+                                    <span>8 PM</span>
+                                </div>
+                                <div id="timeRangeSlider"></div>
+                            </div>
+                            <div class="duration-badge bg-gray-100 text-gray-700" id="durationBadge">30 min</div>
+                            <input type="hidden" id="startTime" value="09:00">
+                            <input type="hidden" id="endTime" value="09:30">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <div class="flex space-x-2">
+                            <button type="button" class="category-btn work active flex items-center px-3 py-2 rounded-lg" data-category="work">
+                                <i class="bi bi-briefcase mr-2"></i> Work
+                            </button>
+                            <button type="button" class="category-btn meeting flex items-center px-3 py-2 rounded-lg" data-category="meeting">
+                                <i class="bi bi-people mr-2"></i> Meeting
+                            </button>
+                            <button type="button" class="category-btn personal flex items-center px-3 py-2 rounded-lg" data-category="personal">
+                                <i class="bi bi-person mr-2"></i> Personal
+                            </button>
+                            <button type="button" class="category-btn learning flex items-center px-3 py-2 rounded-lg" data-category="learning">
+                                <i class="bi bi-book mr-2"></i> Learning
+                            </button>
+                        </div>
+                        <input type="hidden" id="taskCategory" value="work">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="taskDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="taskDescription" rows="3" placeholder="Add details about this task"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end">
+                <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg mr-2" onclick="closeAddTaskModal()">Cancel</button>
+                <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg" id="saveTaskBtn">Add Task</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div id="editTaskModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+                <h3 class="text-xl font-bold text-gray-800">Edit Task</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-500" onclick="closeEditTaskModal()">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="px-6 py-4">
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId">
+                    <div class="mb-4">
+                        <label for="editTaskTitle" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="editTaskTitle" placeholder="Enter task title" required>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                        <div class="time-picker-container">
+                            <div class="time-display">
+                                <div class="time-display-item">
+                                    <span id="editStartTimeDisplay" class="text-lg font-medium">9:00 AM</span>
+                                    <span class="time-label">Start</span>
+                                </div>
+                                <div class="time-separator text-gray-400">to</div>
+                                <div class="time-display-item">
+                                    <span id="editEndTimeDisplay" class="text-lg font-medium">9:30 AM</span>
+                                    <span class="time-label">End</span>
+                                </div>
+                            </div>
+                            <div class="time-slider-container">
+                                <div class="time-labels">
+                                    <span>8 AM</span>
+                                    <span>12 PM</span>
+                                    <span>4 PM</span>
+                                    <span>8 PM</span>
+                                </div>
+                                <div id="editTimeRangeSlider"></div>
+                            </div>
+                            <div class="duration-badge bg-gray-100 text-gray-700" id="editDurationBadge">30 min</div>
+                            <input type="hidden" id="editStartTime" value="09:00">
+                            <input type="hidden" id="editEndTime" value="09:30">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <div class="flex space-x-2">
+                            <button type="button" class="edit-category-btn category-btn work flex items-center px-3 py-2 rounded-lg" data-category="work">
+                                <i class="bi bi-briefcase mr-2"></i> Work
+                            </button>
+                            <button type="button" class="edit-category-btn category-btn meeting flex items-center px-3 py-2 rounded-lg" data-category="meeting">
+                                <i class="bi bi-people mr-2"></i> Meeting
+                            </button>
+                            <button type="button" class="edit-category-btn category-btn personal flex items-center px-3 py-2 rounded-lg" data-category="personal">
+                                <i class="bi bi-person mr-2"></i> Personal
+                            </button>
+                            <button type="button" class="edit-category-btn category-btn learning flex items-center px-3 py-2 rounded-lg" data-category="learning">
+                                <i class="bi bi-book mr-2"></i> Learning
+                            </button>
+                        </div>
+                        <input type="hidden" id="editTaskCategory" value="work">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="editTaskDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="editTaskDescription" rows="3" placeholder="Add details about this task"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="editTaskStatus" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" id="editTaskStatus">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="partial">Partially Completed</option>
+                            <option value="missed">Missed</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-between">
+                <button type="button" class="bg-red-500 hover:bg-red-600 text-white font-medium px-4 py-2 rounded-lg" id="deleteTaskBtn">Delete</button>
+                <div>
+                    <button type="button" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg mr-2" onclick="closeEditTaskModal()">Cancel</button>
+                    <button type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-4 py-2 rounded-lg" id="updateTaskBtn">Update Task</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nouislider@14.6.3/distribute/nouislider.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    <script>
+        // App state
+        const state = {
+            tasks: [],
+            currentDate: new Date(),
+            focusTimerRunning: false,
+            focusTimeRemaining: 25 * 60, // 25 minutes in seconds
+            focusInterval: null,
+            draggedTask: null,
+            selectedCategory: 'work',
+            selectedDuration: 30 // minutes
+        };
+
+        // DOM Elements
+        $(document).ready(function () {
+            initApp();
+        });
+
+        function initApp() {
+            // Load tasks from localStorage or use sample data
+            loadTasks();
+
+            // Generate calendar time blocks
+            generateTimeBlocks();
+
+            // Initialize UI components
+            initDateDisplay();
+            initTimeSelectors();
+            initCategoryButtons();
+            initCharts();
+            initQuickAdd();
+
+            // Render tasks and update stats
+            renderTasks();
+            updateTaskCompletionList();
+            updateCompletedTasksCount();
+
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        // Load tasks from localStorage or create sample data
+        function loadTasks() {
+            const savedTasks = localStorage.getItem('timebloc-tasks');
+
+            if (savedTasks) {
+                state.tasks = JSON.parse(savedTasks);
+                // Convert date strings back to Date objects
+                state.tasks.forEach(task => {
+                    task.date = new Date(task.date);
+                });
+            } else {
+                // Create sample tasks for demo
+                createSampleTasks();
+            }
+        }
+
+        // Create sample tasks for demonstration
+        function createSampleTasks() {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+
+            state.tasks = [
+                {
+                    id: 1,
+                    title: 'Team Standup',
+                    startTime: '08:00',
+                    endTime: '08:30',
+                    category: 'meeting',
+                    description: 'Daily team standup meeting',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 2,
+                    title: 'Project Planning',
+                    startTime: '09:00',
+                    endTime: '10:00',
+                    category: 'work',
+                    description: 'Plan next sprint',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 3,
+                    title: 'Code Review',
+                    startTime: '10:00',
+                    endTime: '10:45',
+                    category: 'work',
+                    description: 'Review PR #123',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 4,
+                    title: 'Quick Break',
+                    startTime: '11:00',
+                    endTime: '11:15',
+                    category: 'personal',
+                    description: 'Coffee break',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 5,
+                    title: 'Client Call',
+                    startTime: '11:15',
+                    endTime: '11:45',
+                    category: 'meeting',
+                    description: 'Discuss project requirements',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 6,
+                    title: 'Lunch Break',
+                    startTime: '12:00',
+                    endTime: '13:00',
+                    category: 'personal',
+                    description: 'Lunch',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 7,
+                    title: 'Development Work',
+                    startTime: '13:00',
+                    endTime: '15:00',
+                    category: 'work',
+                    description: 'Work on new feature',
+                    date: today,
+                    status: 'completed'
+                },
+                {
+                    id: 8,
+                    title: 'Learning: React Hooks',
+                    startTime: '15:00',
+                    endTime: '15:45',
+                    category: 'learning',
+                    description: 'Study React Hooks',
+                    date: today,
+                    status: 'pending'
+                },
+                {
+                    id: 9,
+                    title: 'Weekly Review',
+                    startTime: '16:00',
+                    endTime: '16:30',
+                    category: 'meeting',
+                    description: 'Team weekly review',
+                    date: today,
+                    status: 'pending'
+                },
+                {
+                    id: 10,
+                    title: 'Coffee Break',
+                    startTime: '16:30',
+                    endTime: '16:45',
+                    category: 'personal',
+                    description: 'Quick coffee',
+                    date: today,
+                    status: 'pending'
+                },
+                {
+                    id: 11,
+                    title: 'Email Cleanup',
+                    startTime: '17:00',
+                    endTime: '17:45',
+                    category: 'work',
+                    description: 'Clear inbox',
+                    date: today,
+                    status: 'pending'
+                },
+                {
+                    id: 12,
+                    title: 'Gym Workout',
+                    startTime: '18:00',
+                    endTime: '19:00',
+                    category: 'personal',
+                    description: 'Cardio and weights',
+                    date: today,
+                    status: 'pending'
+                }
+            ];
+
+            saveTasks();
+        }
+
+        // Save tasks to localStorage
+        function saveTasks() {
+            localStorage.setItem('timebloc-tasks', JSON.stringify(state.tasks));
+
+            // Update UI elements that depend on task data
+            updateCompletedTasksCount();
+            updateTimeDistribution();
+            updateTaskCompletionList();
+        }
+        
+        // Improved time block generation
+        function generateTimeBlocks() {
+            const $calendarContainer = $('#calendarContainer');
+            $calendarContainer.empty();
+
+            // Create time blocks from 8 AM to 8 PM
+            for (let hour = 8; hour <= 20; hour++) {
+                const $timeBlock = $('<div>', {
+                    class: 'time-block',
+                    'data-hour': hour
+                });
+
+                const $timeLabel = $('<div>', {
+                    class: 'time-label text-gray-500 text-sm',
+                    text: formatHour(hour)
+                });
+
+                // Add quarter-hour markers
+                for (let minute = 15; minute < 60; minute += 15) {
+                    const $marker = $('<div>', {
+                        class: `quarter-hour-marker min-${minute}`
+                    });
+                    $timeBlock.append($marker);
+                }
+
+                $timeBlock.append($timeLabel);
+                $calendarContainer.append($timeBlock);
+
+                // Add click event to create task at this time
+                $timeBlock.on('click', function (e) {
+                    // Only trigger if clicking directly on the time block, not on a task
+                    if (e.target === this || $(e.target).hasClass('quarter-hour-marker')) {
+                        const clickY = e.clientY - $(this).offset().top;
+                        const minute = Math.floor(clickY / 15) * 15;
+                        openAddTaskModalAtTime(hour, minute);
+                    }
+                });
+
+                // Add drag and drop event listeners
+                $timeBlock.on('dragover', handleDragOver);
+                $timeBlock.on('dragleave', handleDragLeave);
+                $timeBlock.on('drop', handleDrop);
+            }
+        }
+
+        // Format hour to AM/PM format
+        function formatHour(hour) {
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:00 ${ampm}`;
+        }
+
+        // Initialize date display
+        function initDateDisplay() {
+            updateDateDisplay();
+        }
+
+        // Update the date display
+        function updateDateDisplay() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            $('#currentDate').text(state.currentDate.toLocaleDateString('en-US', options));
+        }
+
+        // Initialize time selectors in modals
+        function initTimeSelectors() {
+            initAddTaskTimeSelector();
+            initEditTaskTimeSelector();
+        }
+
+        // Initialize time selector for add task modal
+        function initAddTaskTimeSelector() {
+            const $timeRangeSlider = $('#timeRangeSlider');
+
+            if ($timeRangeSlider.length === 0 || typeof noUiSlider === 'undefined') return;
+
+            // Create the slider
+            noUiSlider.create($timeRangeSlider[0], {
+                start: [9 * 60, 9 * 60 + 30], // 9:00 AM to 9:30 AM
+                connect: true,
+                step: 15, // 15 minute increments
+                range: {
+                    'min': 8 * 60, // 8:00 AM
+                    'max': 20 * 60 + 15 // 8:15 PM
+                }
+            });
+
+            // Update displays when slider changes
+            $timeRangeSlider[0].noUiSlider.on('update', function (values, handle) {
+                const startMinutes = Math.floor(values[0]);
+                const endMinutes = Math.floor(values[1]);
+
+                const startHour = Math.floor(startMinutes / 60);
+                const startMin = startMinutes % 60;
+                const endHour = Math.floor(endMinutes / 60);
+                const endMin = endMinutes % 60;
+
+                // Format for display
+                $('#startTimeDisplay').text(formatTime(`${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`));
+                $('#endTimeDisplay').text(formatTime(`${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`));
+
+                // Update hidden inputs
+                $('#startTime').val(`${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`);
+                $('#endTime').val(`${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`);
+
+                // Update duration badge
+                const durationMinutes = endMinutes - startMinutes;
+                const hours = Math.floor(durationMinutes / 60);
+                const minutes = durationMinutes % 60;
+
+                if (hours > 0) {
+                    $('#durationBadge').text(`${hours}h ${minutes}m`);
+                } else {
+                    $('#durationBadge').text(`${minutes} min`);
+                }
+            });
+        }
+
+        // Initialize time selector for edit task modal
+        function initEditTaskTimeSelector() {
+            const $editTimeRangeSlider = $('#editTimeRangeSlider');
+
+            if ($editTimeRangeSlider.length === 0 || typeof noUiSlider === 'undefined') return;
+
+            // Create the slider
+            noUiSlider.create($editTimeRangeSlider[0], {
+                start: [9 * 60, 9 * 60 + 30], // 9:00 AM to 9:30 AM
+                connect: true,
+                step: 15, // 15 minute increments
+                range: {
+                    'min': 8 * 60, // 8:00 AM
+                    'max': 20 * 60 + 15 // 8:15 PM
+                }
+            });
+
+            // Update displays when slider changes
+            $editTimeRangeSlider[0].noUiSlider.on('update', function (values, handle) {
+                const startMinutes = Math.floor(values[0]);
+                const endMinutes = Math.floor(values[1]);
+
+                const startHour = Math.floor(startMinutes / 60);
+                const startMin = startMinutes % 60;
+                const endHour = Math.floor(endMinutes / 60);
+                const endMin = endMinutes % 60;
+
+                // Format for display
+                $('#editStartTimeDisplay').text(formatTime(`${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`));
+                $('#editEndTimeDisplay').text(formatTime(`${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`));
+
+                // Update hidden inputs
+                $('#editStartTime').val(`${startHour.toString().padStart(2, '0')}:${startMin.toString().padStart(2, '0')}`);
+                $('#editEndTime').val(`${endHour.toString().padStart(2, '0')}:${endMin.toString().padStart(2, '0')}`);
+
+                // Update duration badge
+                const durationMinutes = endMinutes - startMinutes;
+                const hours = Math.floor(durationMinutes / 60);
+                const minutes = durationMinutes % 60;
+
+                if (hours > 0) {
+                    $('#editDurationBadge').text(`${hours}h ${minutes}m`);
+                } else {
+                    $('#editDurationBadge').text(`${minutes} min`);
+                }
+            });
+        }
+
+        // Initialize category buttons
+        function initCategoryButtons() {
+
+            // For add task modal
+            $('.category-btn:not(.edit-category-btn)').on('click', function () {
+                // Remove active class from all buttons
+                $('.category-btn:not(.edit-category-btn)').removeClass('active');
+
+                // Add active class to clicked button
+                $(this).addClass('active');
+
+                // Update hidden input value
+                $('#taskCategory').val($(this).data('category'));
+            });
+
+            // For edit task modal
+            $('.edit-category-btn').on('click', function () {
+                // Remove active class from all buttons
+                $('.edit-category-btn').removeClass('active');
+
+                // Add active class to clicked button
+                $(this).addClass('active');
+
+                // Update hidden input value
+                $('#editTaskCategory').val($(this).data('category'));
+            });
+        }
+
+        // Initialize charts
+        function initCharts() {
+            initTimeDistributionChart();
+            initProgressCircle();
+        }
+
+        // Initialize time distribution chart
+        function initTimeDistributionChart() {
+            const $ctx = $('#timeDistributionChart');
+            if ($ctx.length === 0 || typeof Chart === 'undefined') return;
+
+            const chart = new Chart($ctx[0].getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Work', 'Meetings', 'Personal', 'Learning'],
+                    datasets: [{
+                        data: [0, 0, 0, 0], // Will be updated
+                        backgroundColor: [
+                            '#6366f1', // work
+                            '#f59e0b', // meetings
+                            '#ec4899', // personal
+                            '#10b981'  // learning
+                        ],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Store chart reference in window for later updates
+            window.timeDistributionChart = chart;
+
+            // Update chart with current data
+            updateTimeDistribution();
+        }
+
+        // Initialize progress circle
+        function initProgressCircle() {
+            // Initial draw of the progress circle
+            updateProgressCircle();
+        }
+
+        // Initialize quick add functionality
+        function initQuickAdd() {
+            const $quickAddBtn = $('#quickAddBtn');
+            const $quickAddForm = $('#quickAddForm');
+            const $quickTaskTitle = $('#quickTaskTitle');
+
+            // Toggle quick add form
+            $quickAddBtn.on('click', function () {
+                $quickAddForm.toggleClass('active');
+                if ($quickAddForm.hasClass('active')) {
+                    $quickTaskTitle.focus();
+                }
+            });
+
+
+            // Handle category selection
+            $('.quick-category').on('click', function () {
+                $('.quick-category').removeClass('active');
+                $(this).addClass('active');
+                state.selectedCategory = $(this).data('category');
+            });
+
+            // Handle duration selection
+            $('.quick-duration').on('click', function () {
+                $('.quick-duration').removeClass('active');
+                $(this).addClass('active');
+                state.selectedDuration = parseInt($(this).data('duration'));
+            });
+
+            // Handle form submission
+            $quickTaskTitle.on('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addQuickTask();
+                }
+            });
+
+            // Close form when clicking outside
+            $(document).on('click', function (e) {
+                if (!$quickAddForm[0].contains(e.target) && !$quickAddBtn[0].contains(e.target) && $quickAddForm.hasClass('active')) {
+                    $quickAddForm.removeClass('active');
+                }
+            });
+        }
+
+        // Add a quick task
+        function addQuickTask() {
+            const title = $('#quickTaskTitle').val().trim();
+
+            if (!title) return;
+
+            // Calculate start time (next quarter hour)
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const roundedMinute = Math.ceil(currentMinute / 15) * 15;
+
+            let startHour = currentHour;
+            let startMinute = roundedMinute;
+
+            if (startMinute >= 60) {
+                startHour += 1;
+                startMinute = 0;
+            }
+
+            if (startHour < 8) {
+                startHour = 8;
+                startMinute = 0;
+            } else if (startHour >= 20) {
+                startHour = 19;
+                startMinute = 45;
+            }
+
+            // Calculate end time
+            let endHour = startHour;
+            let endMinute = startMinute + state.selectedDuration;
+
+            while (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+
+            if (endHour > 20 || (endHour === 20 && endMinute > 15)) {
+                endHour = 20;
+                endMinute = 15;
+            }
+
+            // Format times
+            const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+            const endTime = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+
+            // Create new task
+            const newTask = {
+                id: Date.now(),
+                title,
+                startTime,
+                endTime,
+                category: state.selectedCategory,
+                description: '',
+                date: new Date(state.currentDate),
+                status: 'pending'
+            };
+
+            // Add to tasks array
+            state.tasks.push(newTask);
+
+            // Save and render
+            saveTasks();
+            renderTasks();
+
+            // Reset and close form
+            $('#quickTaskTitle').val('');
+            $('#quickAddForm').removeClass('active');
+
+            // Show toast notification
+            showToast(`Task "${title}" added successfully!`);
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Navigation buttons
+            $('#prevDay').on('click', goToPreviousDay);
+            $('#nextDay').on('click', goToNextDay);
+            $('#todayBtn').on('click', goToToday);
+
+            // Focus timer button
+            $('#focusStartBtn').on('click', toggleFocusTimer);
+
+            // Save task button
+            $('#saveTaskBtn').on('click', function() {
+                saveNewTask();
+                closeAddTaskModal();
+            });
+
+            // Update task button
+            $('#updateTaskBtn').on('click', function() {
+                updateTask();
+                closeEditTaskModal();
+            });
+
+            // Delete task button
+            $('#deleteTaskBtn').on('click', function() {
+                deleteTask();
+                closeEditTaskModal();
+            });
+
+            // Task completion
+            $(document).on('click', '.complete-task', function (e) {
+                e.stopPropagation(); // Prevent opening the edit modal
+                const taskId = $(this).data('id');
+                markTaskAsCompleted(taskId);
+            });
+        }
+
+        // Render tasks on the calendar
+        function renderTasks() {
+            // Clear existing tasks
+            $('.task').remove();
+
+            // Filter tasks for the current date
+            const tasksToday = getTasksForCurrentDate();
+
+            // Group tasks by time slots
+            const timeSlots = {};
+
+            // First, identify all time slots and the tasks that occupy them
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+
+                // Create or update time slots for this task's duration
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    if (!timeSlots[time]) {
+                        timeSlots[time] = [];
+                    }
+                    timeSlots[time].push(task.id);
+                }
+            });
+
+            // Calculate the maximum number of overlapping tasks for each task
+            const taskOverlaps = {};
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+
+                let maxOverlap = 0;
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    const overlapsAtTime = timeSlots[time] ? timeSlots[time].length : 0;
+                    maxOverlap = Math.max(maxOverlap, overlapsAtTime);
+                }
+
+                taskOverlaps[task.id] = maxOverlap;
+            });
+
+            // Now assign positions to each task
+            const taskPositions = {};
+
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+
+                // Find all tasks that overlap with this one
+                const overlappingTaskIds = new Set();
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    if (timeSlots[time]) {
+                        timeSlots[time].forEach(id => {
+                            if (id !== task.id) {
+                                overlappingTaskIds.add(id);
+                            }
+                        });
+                    }
+                }
+
+                // Find positions already taken by overlapping tasks
+                const takenPositions = new Set();
+                overlappingTaskIds.forEach(id => {
+                    if (taskPositions[id] !== undefined) {
+                        takenPositions.add(taskPositions[id]);
+                    }
+                });
+
+                // Find the first available position
+                let position = 0;
+                while (takenPositions.has(position)) {
+                    position++;
+                }
+
+                taskPositions[task.id] = position;
+            });
+
+            // Render each task with its calculated position
+            tasksToday.forEach(task => {
+                const position = taskPositions[task.id];
+                const totalPositions = taskOverlaps[task.id];
+                const $taskEl = createTaskElement(task, position, totalPositions);
+                $('#calendarContainer').append($taskEl);
+            });
+
+            updateCompletedTasksCount();
+        }
+
+        // Get tasks for the current date
+        function getTasksForCurrentDate() {
+            const currentDateStart = new Date(state.currentDate);
+            currentDateStart.setHours(0, 0, 0, 0);
+
+            const currentDateEnd = new Date(state.currentDate);
+            currentDateEnd.setHours(23, 59, 59, 999);
+
+            return state.tasks.filter(task =>
+                task.date >= currentDateStart && task.date <= currentDateEnd
+            );
+        }
+
+        // Create a task element
+        function createTaskElement(task, position, totalPositions) {
+            const startHour = parseInt(task.startTime.split(':')[0]);
+            const startMinute = parseInt(task.startTime.split(':')[1]);
+            const endHour = parseInt(task.endTime.split(':')[0]);
+            const endMinute = parseInt(task.endTime.split(':')[1]);
+
+            // Calculate position and height
+            const startTimeInMinutes = startHour * 60 + startMinute;
+            const endTimeInMinutes = endHour * 60 + endMinute;
+            const durationInMinutes = endTimeInMinutes - startTimeInMinutes;
+
+            // Calculate top position (relative to 8 AM)
+            const topPosition = (startTimeInMinutes - 8 * 60) / 60 * 60; // 60px per hour
+
+            // Calculate height (15 minutes = 15px)
+            const height = durationInMinutes / 60 * 60; // 60px per hour
+
+            const $taskEl = $('<div>', {
+                class: `task ${task.category} rounded-lg shadow-sm overflow-hidden`,
+                'data-id': task.id,
+                draggable: true
+            });
+
+            // Add appropriate height class
+            if (durationInMinutes <= 15) {
+                $taskEl.addClass('task-15min');
+            } else if (durationInMinutes <= 30) {
+                $taskEl.addClass('task-30min');
+            } else if (durationInMinutes <= 45) {
+                $taskEl.addClass('task-45min');
+            } else {
+                $taskEl.addClass('task-60min');
+            }
+
+            // Add status class if not pending
+            if (task.status !== 'pending') {
+                $taskEl.addClass(task.status);
+            }
+
+            // Set position and height
+            $taskEl.css({
+                top: `${topPosition}px`,
+                height: `${height}px`
+            });
+
+            // Set width based on position and total positions
+            const width = 100 / totalPositions;
+            $taskEl.css({
+                width: `calc(${width}% - 0.5rem)`,
+                left: `calc(${position * width}% + 0.25rem)`
+            });
+
+            // For 15-minute tasks, ensure content is visible
+            if (durationInMinutes <= 15) {
+                $taskEl.html(`
+                    <div class="flex justify-between items-center p-2">
+                        <span class="font-medium text-white truncate">${task.title}</span>
+                        <span class="text-xs text-white opacity-80">${formatTime(task.startTime)}-${formatTime(task.endTime)}</span>
+                    </div>
+                    <button class="complete-task absolute bottom-1 right-1 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full w-6 h-6 flex items-center justify-center" title="Mark as Complete" data-id="${task.id}">
+                        <i class="bi bi-check"></i>
+                    </button>
+                `);
+            } else {
+                $taskEl.html(`
+                    <div class="flex justify-between p-2">
+                        <span class="font-medium text-white truncate">${task.title}</span>
+                        <span class="text-xs text-white opacity-80">${formatTime(task.startTime)}-${formatTime(task.endTime)}</span>
+                    </div>
+                    <button class="complete-task absolute bottom-1 right-1 bg-white bg-opacity-30 hover:bg-opacity-50 rounded-full w-6 h-6 flex items-center justify-center" title="Mark as Complete" data-id="${task.id}">
+                        <i class="bi bi-check"></i>
+                    </button>
+                `);
+            }
+
+            // Add event listener for editing
+            $taskEl.on('click', function (e) {
+                // Don't open edit modal if clicking the complete button
+                if (!$(e.target).closest('.complete-task').length) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    openEditTaskModal($(this).data('id'));
+                }
+            });
+
+            // Add drag event listeners
+            $taskEl.on('dragstart', handleDragStart);
+            $taskEl.on('dragend', handleDragEnd);
+
+            return $taskEl;
+        }
+
+        // Open the edit task modal
+        function openEditTaskModal(taskId) {
+            const task = state.tasks.find(t => t.id == taskId);
+            if (!task) return;
+
+            // Set form values
+            $('#editTaskId').val(task.id);
+            $('#editTaskTitle').val(task.title);
+            $('#editTaskDescription').val(task.description || '');
+            $('#editTaskStatus').val(task.status);
+
+            // Set category buttons
+            $('.edit-category-btn').removeClass('active');
+            $(`.edit-category-btn[data-category="${task.category}"]`).addClass('active');
+            $('#editTaskCategory').val(task.category);
+
+            // Show modal
+            $('#editTaskModal').removeClass('hidden');
+
+            // Set time slider values after modal is shown
+            setTimeout(() => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+
+                if ($('#editTimeRangeSlider')[0].noUiSlider) {
+                    $('#editTimeRangeSlider')[0].noUiSlider.set([startMinutes, endMinutes]);
+                }
+            }, 300); // Give the modal time to fully open
+        }
+
+        function closeEditTaskModal() {
+            $('#editTaskModal').addClass('hidden');
+        }
+
+        // Open the add task modal
+        function openAddTaskModal() {
+            // Reset form
+            $('#addTaskForm')[0].reset();
+
+            // Set default times
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const roundedMinute = Math.ceil(currentMinute / 15) * 15;
+
+            let startHour = currentHour;
+            let startMinute = roundedMinute;
+
+            if (startMinute >= 60) {
+                startHour += 1;
+                startMinute = 0;
+            }
+
+            if (startHour < 8) {
+                startHour = 8;
+                startMinute = 0;
+            } else if (startHour >= 20) {
+                startHour = 19;
+                startMinute = 45;
+            }
+
+            // Calculate end time (30 minutes later)
+            let endHour = startHour;
+            let endMinute = startMinute + 30;
+
+            if (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+
+            if (endHour > 20 || (endHour === 20 && endMinute > 15)) {
+                endHour = 20;
+                endMinute = 15;
+            }
+
+            // Set slider values
+            const startMinutes = startHour * 60 + startMinute;
+            const endMinutes = endHour * 60 + endMinute;
+
+            $('#timeRangeSlider')[0].noUiSlider.set([startMinutes, endMinutes]);
+
+            // Reset category buttons
+            $('.category-btn:not(.edit-category-btn)').removeClass('active');
+            $('.category-btn[data-category="work"]:not(.edit-category-btn)').addClass('active');
+            $('#taskCategory').val('work');
+
+            // Show modal
+            $('#addTaskModal').removeClass('hidden');
+        }
+
+        function closeAddTaskModal() {
+            $('#addTaskModal').addClass('hidden');
+        }
+
+        // Open the add task modal with a specific time
+        function openAddTaskModalAtTime(hour, minute) {
+            // Reset form
+            $('#addTaskForm')[0].reset();
+
+            // Format the start time
+            const startHour = hour;
+            const startMinute = minute;
+
+            // Calculate end time (30 minutes later)
+            let endHour = startHour;
+            let endMinute = startMinute + 30;
+
+            if (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+
+            if (endHour > 20 || (endHour === 20 && endMinute > 15)) {
+                endHour = 20;
+                endMinute = 15;
+            }
+
+            // Set slider values
+            const startMinutes = startHour * 60 + startMinute;
+            const endMinutes = endHour * 60 + endMinute;
+
+            $('#timeRangeSlider')[0].noUiSlider.set([startMinutes, endMinutes]);
+
+            // Reset category buttons
+            $('.category-btn:not(.edit-category-btn)').removeClass('active');
+            $('.category-btn[data-category="work"]:not(.edit-category-btn)').addClass('active');
+            $('#taskCategory').val('work');
+
+            // Show modal
+            $('#addTaskModal').removeClass('hidden');
+        }
+
+        // Save a new task
+        function saveNewTask() {
+            const title = $('#taskTitle').val().trim();
+            const startTime = $('#startTime').val();
+            const endTime = $('#endTime').val();
+            const category = $('#taskCategory').val();
+            const description = $('#taskDescription').val().trim();
+
+            // Validate inputs
+            if (!title) {
+                showToast('Please enter a task title.');
+                return;
+            }
+
+            // Validate time range
+            if (startTime >= endTime) {
+                showToast('End time must be after start time.');
+                return;
+            }
+
+            // Create new task
+            const newTask = {
+                id: Date.now(), // Use timestamp as ID
+                title,
+                startTime,
+                endTime,
+                category,
+                description,
+                date: new Date(state.currentDate),
+                status: 'pending'
+            };
+
+            // Add to tasks array
+            state.tasks.push(newTask);
+
+            // Save and render
+            saveTasks();
+            renderTasks();
+
+            // Close modal
+            closeAddTaskModal();
+
+            // Show success toast
+            showToast(`Task "${title}" added successfully!`);
+        }
+
+        // Update an existing task
+        function updateTask() {
+            const taskId = $('#editTaskId').val();
+            const title = $('#editTaskTitle').val().trim();
+            const startTime = $('#editStartTime').val();
+            const endTime = $('#editEndTime').val();
+            const category = $('#editTaskCategory').val();
+            const description = $('#editTaskDescription').val().trim();
+            const status = $('#editTaskStatus').val();
+
+            // Validate inputs
+            if (!title) {
+                showToast('Please enter a task title.');
+                return;
+            }
+
+            // Validate time range
+            if (startTime >= endTime) {
+                showToast('End time must be after start time.');
+                return;
+            }
+
+            // Find task index
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+
+            // Update task
+            state.tasks[taskIndex] = {
+                ...state.tasks[taskIndex],
+                title,
+                startTime,
+                endTime,
+                category,
+                description,
+                status
+            };
+
+            // Save and render
+            saveTasks();
+            renderTasks();
+
+            // Close modal
+            closeEditTaskModal();
+
+            // Show success toast
+            showToast(`Task "${title}" updated successfully!`);
+        }
+
+        // Delete a task
+        function deleteTask() {
+            const taskId = $('#editTaskId').val();
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+
+            const taskTitle = state.tasks[taskIndex].title;
+
+            // Confirm deletion
+            if (!confirm(`Are you sure you want to delete "${taskTitle}"?`)) {
+                return;
+            }
+
+            // Remove task
+            state.tasks = state.tasks.filter(t => t.id != taskId);
+
+            // Save and render
+            saveTasks();
+            renderTasks();
+
+            // Close modal
+            closeEditTaskModal();
+
+            // Show success toast
+            showToast(`Task "${taskTitle}" deleted successfully!`);
+        }
+
+        // Mark a task as completed
+        function markTaskAsCompleted(taskId) {
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+
+            // Toggle completion status
+            if (state.tasks[taskIndex].status === 'completed') {
+                state.tasks[taskIndex].status = 'pending';
+            } else {
+                state.tasks[taskIndex].status = 'completed';
+            }
+
+            saveTasks();
+            renderTasks();
+        }
+
+        // Update completed tasks count
+        function updateCompletedTasksCount() {
+            const tasksToday = getTasksForCurrentDate();
+
+            const completedTasks = tasksToday.filter(task => task.status === 'completed').length;
+            const totalTasks = tasksToday.length;
+            const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Update UI elements
+            $('#completedTasksCount').text(`${completedTasks}/${totalTasks}`);
+            $('#completedTasksCount2').text(`${completedTasks}/${totalTasks}`);
+            $('#completedTasksPercent').text(percentage);
+
+            // Update progress circle
+            updateProgressCircle(tasksToday);
+        }
+
+        // Update progress circle
+        function updateProgressCircle(tasksToday) {
+            // If tasksToday is not provided, get tasks for current date
+            if (!tasksToday) {
+                tasksToday = getTasksForCurrentDate();
+            }
+
+            const completedTasks = tasksToday.filter(task => task.status === 'completed').length;
+            const totalTasks = tasksToday.length;
+            const percentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Draw progress circle
+            const $canvas = $('#progressCircle');
+            if ($canvas.length === 0) return;
+
+            const canvas = $canvas[0];
+            const ctx = canvas.getContext('2d');
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 35;
+
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.lineWidth = 8;
+            ctx.stroke();
+
+            // Draw progress arc
+            if (percentage > 0) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, -Math.PI / 2, (-Math.PI / 2) + (percentage / 100) * 2 * Math.PI);
+                ctx.strokeStyle = percentage >= 70 ? '#10b981' : percentage >= 40 ? '#f59e0b' : '#ef4444';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+            }
+        }
+
+        // Update the time distribution chart and stats
+        function updateTimeDistribution() {
+            if (!window.timeDistributionChart) return;
+
+            const tasksToday = getTasksForCurrentDate();
+
+            // Calculate time spent on each category
+            const categoryMinutes = {
+                work: 0,
+                meeting: 0,
+                personal: 0,
+                learning: 0
+            };
+
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+                const durationInMinutes = endMinutes - startMinutes;
+
+                categoryMinutes[task.category] += durationInMinutes;
+            });
+
+            // Update chart data
+            window.timeDistributionChart.data.datasets[0].data = [
+                categoryMinutes.work,
+                categoryMinutes.meeting,
+                categoryMinutes.personal,
+                categoryMinutes.learning
+            ];
+            window.timeDistributionChart.update();
+
+            // Update stats display
+            const $timeDistributionStats = $('#timeDistributionStats');
+            if ($timeDistributionStats.length === 0) return;
+
+            $timeDistributionStats.empty();
+
+            const categories = [
+                { name: 'Work', key: 'work', color: 'var(--work)' },
+                { name: 'Meetings', key: 'meeting', color: 'var(--meeting)' },
+                { name: 'Personal', key: 'personal', color: 'var(--personal)' },
+                { name: 'Learning', key: 'learning', color: 'var(--learning)' }
+            ];
+
+            categories.forEach(category => {
+                const minutes = categoryMinutes[category.key];
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+
+                const timeDisplay = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+                const $categoryEl = $('<div>', {
+                    class: 'flex justify-between items-center mb-2'
+                }).html(`
+                    <div class="flex items-center">
+                        <span class="category-badge" style="background-color: ${category.color};"></span>
+                        ${category.name}
+                    </div>
+                    <span class="font-medium">${timeDisplay}</span>
+                `);
+
+                $timeDistributionStats.append($categoryEl);
+            });
+        }
+
+        // Update task completion list
+        function updateTaskCompletionList() {
+            const $taskCompletionList = $('#taskCompletionList');
+            if ($taskCompletionList.length === 0) return;
+
+            $taskCompletionList.empty();
+
+            // Get tasks for today
+            const tasksToday = getTasksForCurrentDate();
+
+            // Sort by start time
+            tasksToday.sort((a, b) => {
+                return timeToMinutes(a.startTime) - timeToMinutes(b.startTime);
+            });
+
+            // Create list items
+            tasksToday.forEach(task => {
+                const $taskItem = $('<div>', {
+                    class: `task-completion-item ${task.status === 'completed' ? 'completed' : ''} hover:bg-gray-50 rounded-md px-2`
+                }).html(`
+                    <i class="bi ${task.status === 'completed' ? 'bi-check-circle-fill' : 'bi-circle'}"></i>
+                    <span class="truncate">${task.title}</span>
+                    <span class="task-time">${formatTime(task.startTime)}</span>
+                `);
+
+                // Add click handler to toggle completion
+                $taskItem.on('click', function () {
+                    markTaskAsCompleted(task.id);
+                });
+
+                $taskCompletionList.append($taskItem);
+            });
+        }
+
+        // Navigate to previous day
+        function goToPreviousDay() {
+            state.currentDate.setDate(state.currentDate.getDate() - 1);
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+            updateTaskCompletionList();
+        }
+
+        // Navigate to next day
+        function goToNextDay() {
+            state.currentDate.setDate(state.currentDate.getDate() + 1);
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+            updateTaskCompletionList();
+        }
+
+        // Navigate to today
+        function goToToday() {
+            state.currentDate = new Date();
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+            updateTaskCompletionList();
+        }
+
+        // Toggle focus timer
+        function toggleFocusTimer() {
+            if (state.focusTimerRunning) {
+                // Stop timer
+                clearInterval(state.focusInterval);
+                state.focusTimerRunning = false;
+                $('#focusStartBtn').text('Start');
+                state.focusTimeRemaining = 25 * 60; // Reset to 25 minutes
+                updateFocusTimerDisplay();
+            } else {
+                // Start timer
+                state.focusTimerRunning = true;
+                $('#focusStartBtn').text('Pause');
+
+                state.focusInterval = setInterval(() => {
+                    state.focusTimeRemaining--;
+
+                    if (state.focusTimeRemaining <= 0) {
+                        // Timer finished
+                        clearInterval(state.focusInterval);
+                        state.focusTimerRunning = false;
+                        $('#focusStartBtn').text('Start');
+                        state.focusTimeRemaining = 25 * 60; // Reset to 25 minutes
+
+                        // Play sound and show notification
+                        playTimerEndSound();
+                        showNotification('Focus session completed!', 'Time for a break.');
+                    }
+
+                    updateFocusTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        // Update focus timer display
+        function updateFocusTimerDisplay() {
+            const minutes = Math.floor(state.focusTimeRemaining / 60);
+            const seconds = state.focusTimeRemaining % 60;
+            $('#focusTimer').text(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        }
+
+        // Play timer end sound
+        function playTimerEndSound() {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
+            audio.play();
+        }
+
+        // Show notification
+        function showNotification(title, body) {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, { body });
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, { body });
+                        }
+                    });
+                }
+            }
+        }
+
+        // Show toast notification
+        function showToast(message) {
+            // Remove any existing toasts
+            $('.toast-notification').remove();
+            
+            // Create toast element
+            const $toast = $('<div>', {
+                class: 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg shadow-lg transform translate-y-full opacity-0 transition-all duration-300 z-50 toast-notification',
+                text: message
+            });
+
+            // Add to document
+            $('body').append($toast);
+
+            // Trigger animation
+            setTimeout(() => {
+                $toast.removeClass('translate-y-full opacity-0').addClass('translate-y-0 opacity-100');
+            }, 10);
+
+            // Remove after animation
+            setTimeout(() => {
+                $toast.removeClass('translate-y-0 opacity-100').addClass('translate-y-full opacity-0');
+                setTimeout(() => {
+                    $toast.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Format time from 24h to 12h format
+        function formatTime(time) {
+            const [hour, minute] = time.split(':');
+            const hourInt = parseInt(hour);
+            const ampm = hourInt >= 12 ? 'PM' : 'AM';
+            const hour12 = hourInt % 12 || 12;
+            return `${hour12}:${minute} ${ampm}`;
+        }
+
+        // Convert time string (HH:MM) to minutes
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Convert minutes to time string (HH:MM)
+        function minutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+
+        // Drag and drop handlers
+        function handleDragStart(e) {
+            $(this).addClass('dragging');
+            state.draggedTask = $(this).data('id');
+            e.originalEvent.dataTransfer.effectAllowed = 'move';
+            e.originalEvent.dataTransfer.setData('text/plain', $(this).data('id'));
+        }
+
+        function handleDragEnd(e) {
+            $(this).removeClass('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            $(this).addClass('drag-over');
+            e.originalEvent.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragLeave(e) {
+            $(this).removeClass('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            $(this).removeClass('drag-over');
+
+            const taskId = state.draggedTask;
+            if (!taskId) return;
+
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+
+            // Calculate new start time based on drop position
+            const $timeBlock = $(this);
+            const hour = parseInt($timeBlock.data('hour'));
+            const blockRect = $timeBlock[0].getBoundingClientRect();
+            const dropY = e.originalEvent.clientY - blockRect.top;
+
+            // Calculate minutes based on position within the hour block
+            const minute = Math.floor(dropY / 15) * 15;
+
+            // Calculate new start and end times
+            const task = state.tasks[taskIndex];
+            const oldStartMinutes = timeToMinutes(task.startTime);
+            const oldEndMinutes = timeToMinutes(task.endTime);
+            const duration = oldEndMinutes - oldStartMinutes;
+
+            const newStartMinutes = hour * 60 + minute;
+            let newEndMinutes = newStartMinutes + duration;
+
+            // Ensure end time doesn't exceed 8:15 PM
+            if (newEndMinutes > 20 * 60 + 15) {
+                newEndMinutes = 20 * 60 + 15;
+            }
+
+            // Update task times
+            task.startTime = minutesToTime(newStartMinutes);
+            task.endTime = minutesToTime(newEndMinutes);
+
+            // Save and render
+            saveTasks();
+            renderTasks();
+
+            state.draggedTask = null;
+
+            // Show success toast
+            showToast(`Task "${task.title}" moved to ${formatTime(task.startTime)}`);
+        }
+    </script>
+</body>
+</html>

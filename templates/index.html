@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeBlock - Plan your day with precision</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        :root {
+            --navy-dark: #0f172a;
+            --navy-light: #1e293b;
+            --accent: #60a5fa;
+            --text-primary: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+        
+        body {
+            background-color: var(--navy-dark);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .time-block {
+            transition: all 0.3s ease;
+            min-height: 60px;
+        }
+        
+        .active-task {
+            border-left: 4px solid var(--warning);
+        }
+        
+        .completed-task {
+            border-left: 4px solid var(--success);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent) 0%, #3b82f6 100%);
+        }
+        
+        .nav-button {
+            transition: all 0.2s ease;
+        }
+        
+        .nav-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Modal styles */
+        .modal {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: var(--navy-light);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--navy-dark);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--navy-light);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-secondary);
+        }
+        
+        /* Enhanced styles */
+        .priority-high {
+            border-right: 4px solid #ef4444;
+        }
+        
+        .priority-medium {
+            border-right: 4px solid #f59e0b;
+        }
+        
+        .priority-low {
+            border-right: 4px solid #3b82f6;
+        }
+        
+        .time-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #ef4444;
+            z-index: 10;
+        }
+        
+        .time-indicator::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ef4444;
+        }
+        
+        .time-column {
+            width: 80px;
+            min-width: 80px;
+            text-align: right;
+            padding-right: 15px;
+        }
+        
+        .schedule-container {
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        /* Time slot styles */
+        .time-slot {
+            min-height: 60px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: background-color 0.2s ease;
+        }
+        
+        .time-slot:last-child {
+            border-bottom: none;
+        }
+        
+        .time-slot.drop-active {
+            background-color: rgba(96, 165, 250, 0.1);
+        }
+        
+        /* Task card styles */
+        .task-card {
+            background-color: rgba(30, 41, 59, 0.9);
+            border-radius: 8px;
+            margin-right: 8px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            user-select: none;
+            flex: 1;
+            min-width: 200px;
+            max-width: 300px;
+        }
+        
+        .task-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .task-card.sortable-ghost {
+            opacity: 0.4;
+            background-color: rgba(96, 165, 250, 0.2);
+        }
+        
+        .task-card.sortable-chosen {
+            opacity: 0.8;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            cursor: grabbing;
+        }
+        
+        .task-card.sortable-drag {
+            cursor: grabbing;
+        }
+        
+        .task-duration {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+        
+        .add-task-btn {
+            display: block;
+            width: 100%;
+            padding: 8px;
+            background-color: rgba(30, 41, 59, 0.4);
+            border: 2px dashed rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: 8px;
+        }
+        
+        .add-task-btn:hover {
+            background-color: rgba(30, 41, 59, 0.7);
+            border-color: var(--accent);
+        }
+        
+        .task-list {
+            display: flex;
+            flex-wrap: wrap;
+            min-height: 10px;
+            padding: 8px 0;
+        }
+        
+        .multi-slot-task {
+            background-color: rgba(30, 41, 59, 0.5);
+            border-left: 2px dashed var(--accent);
+            padding: 8px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div id="app" class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-10 fade-in">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div>
+                    <h1 class="text-4xl font-bold text-white mb-2">TimeBlock</h1>
+                    <p class="text-blue-300">Plan your day with precision</p>
+                </div>
+                <div class="flex space-x-3 mt-4 md:mt-0">
+                    <button id="prevDay" class="nav-button bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-chevron-left mr-2"></i> Previous
+                    </button>
+                    <button id="todayBtn" class="nav-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg">Today</button>
+                    <button id="nextDay" class="nav-button bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg flex items-center">
+                        Next <i class="fas fa-chevron-right ml-2"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 text-center">
+                <h2 id="currentDate" class="text-xl text-gray-300"></h2>
+            </div>
+        </header>
+        
+        <!-- Stats Section -->
+        <section class="mb-10 grid grid-cols-1 md:grid-cols-4 gap-6 fade-in">
+            <!-- Stats cards will be dynamically inserted here -->
+        </section>
+        
+        <!-- Schedule Section -->
+        <section class="mb-8 fade-in">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Today's Schedule</h2>
+                <div class="flex space-x-3">
+                    <button id="addEventBtn" class="nav-button bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-plus mr-2"></i> Add New Event
+                    </button>
+                    <button id="exportBtn" class="nav-button bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg flex items-center">
+                        <i class="fas fa-download mr-2"></i> Export
+                    </button>
+                </div>
+            </div>
+            
+            <div class="glass-card rounded-xl p-6 relative">
+                <div class="schedule-container">
+                    <div id="timeBlocksContainer">
+                        <!-- Time blocks will be dynamically inserted here -->
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Add/Edit Event Modal -->
+        <div id="eventModal" class="modal hidden fixed inset-0 z-50 flex items-center justify-center">
+            <div class="modal-overlay absolute inset-0 bg-black opacity-50"></div>
+            <div class="modal-content rounded-xl p-6 w-full max-w-md mx-4 z-10 fade-in">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 id="modalTitle" class="text-xl font-bold text-white">Add New Event</h3>
+                    <button id="closeModal" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <form id="taskForm">
+                    <input type="hidden" id="taskId" value="">
+                    <input type="hidden" id="selectedTimeSlot" value="">
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-300 mb-2" for="taskName">Task Name</label>
+                        <input type="text" id="taskName" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter task name" required>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-300 mb-2" for="startTime">Start Time</label>
+                            <select id="startTime" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <!-- Time options will be dynamically inserted here -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-300 mb-2" for="endTime">End Time</label>
+                            <select id="endTime" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                <!-- Time options will be dynamically inserted here -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-300 mb-2" for="taskDescription">Description</label>
+                        <textarea id="taskDescription" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Enter task description"></textarea>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-gray-300 mb-2">Priority</label>
+                        <div class="flex space-x-4">
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="low" class="mr-2">
+                                <span class="text-gray-400">Low</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="medium" class="mr-2" checked>
+                                <span class="text-gray-400">Medium</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="priority" value="high" class="mr-2">
+                                <span class="text-gray-400">High</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-between space-x-3">
+                        <div>
+                            <button type="button" id="deleteTaskBtn" class="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-600 hidden">Delete</button>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button type="button" id="cancelBtn" class="px-4 py-2 bg-gray-700 text-gray-300 rounded-lg hover:bg-gray-600">Cancel</button>
+                            <button type="submit" id="saveTaskBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-500">Save Task</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Notification Toast -->
+        <div id="notification" class="hidden fixed bottom-4 right-4 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg fade-in flex items-center">
+            <i class="fas fa-bell mr-3 text-blue-400"></i>
+            <div>
+                <p id="notificationTitle" class="font-medium"></p>
+                <p id="notificationMessage" class="text-sm text-gray-400"></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // App data
+            const appData = {
+                currentDate: new Date(),
+                stats: {
+                    completionRate: {
+                        value: 67,
+                        change: 12,
+                        direction: 'up'
+                    },
+                    tasksCompleted: {
+                        completed: 4,
+                        total: 6,
+                        progress: 4
+                    },
+                    focusTime: {
+                        current: '3h 15m',
+                        goal: '4h 30m',
+                        percentage: 75
+                    },
+                    productivityScore: {
+                        value: 82,
+                        change: 5,
+                        direction: 'up',
+                        weekData: [4, 6, 5, 8, 7, 10, 12]
+                    }
+                },
+                tasks: [
+                    {
+                        id: 1,
+                        name: 'Morning Review',
+                        description: 'Check emails and plan the day',
+                        startTime: '08:00',
+                        endTime: '08:30',
+                        completed: false,
+                        priority: 'medium'
+                    },
+                    {
+                        id: 2,
+                        name: 'Team Standup',
+                        description: 'Daily team meeting',
+                        startTime: '08:30',
+                        endTime: '09:00',
+                        completed: true,
+                        priority: 'high'
+                    },
+                    {
+                        id: 3,
+                        name: 'Project Development',
+                        description: 'Work on TimeBlock frontend',
+                        startTime: '09:00',
+                        endTime: '10:30',
+                        completed: true,
+                        priority: 'high'
+                    },
+                    {
+                        id: 4,
+                        name: 'Coffee Break',
+                        description: 'Short break to recharge',
+                        startTime: '10:30',
+                        endTime: '10:45',
+                        completed: true,
+                        priority: 'low'
+                    },
+                    {
+                        id: 5,
+                        name: 'Client Meeting',
+                        description: 'Discuss project requirements',
+                        startTime: '10:45',
+                        endTime: '11:30',
+                        completed: true,
+                        priority: 'medium'
+                    },
+                    {
+                        id: 6,
+                        name: 'Documentation',
+                        description: 'Update project documentation',
+                        startTime: '11:30',
+                        endTime: '12:00',
+                        completed: false,
+                        priority: 'medium'
+                    },
+                    // Add some overlapping tasks for demonstration
+                    {
+                        id: 7,
+                        name: 'Research',
+                        description: 'Research new technologies',
+                        startTime: '09:00',
+                        endTime: '10:00',
+                        completed: false,
+                        priority: 'low'
+                    },
+                    {
+                        id: 8,
+                        name: 'Personal Call',
+                        description: 'Call with family',
+                        startTime: '10:30',
+                        endTime: '11:00',
+                        completed: false,
+                        priority: 'medium'
+                    }
+                ],
+                // Generate time slots in 15-minute intervals from 8:00 AM to 6:00 PM
+                timeSlots: generateTimeSlots('08:00', '18:00', 15),
+                
+                // Store all sortable instances
+                sortableInstances: []
+            };
+            
+            // Initialize the app
+            initApp();
+            
+            // Generate time slots in specified intervals
+            function generateTimeSlots(startTime, endTime, intervalMinutes) {
+                const slots = [];
+                const [startHour, startMinute] = startTime.split(':').map(Number);
+                const [endHour, endMinute] = endTime.split(':').map(Number);
+                
+                let currentHour = startHour;
+                let currentMinute = startMinute;
+                
+                while (
+                    currentHour < endHour || 
+                    (currentHour === endHour && currentMinute <= endMinute)
+                ) {
+                    // Format the time slot
+                    const formattedHour = currentHour.toString().padStart(2, '0');
+                    const formattedMinute = currentMinute.toString().padStart(2, '0');
+                    slots.push(`${formattedHour}:${formattedMinute}`);
+                    
+                    // Increment by interval
+                    currentMinute += intervalMinutes;
+                    if (currentMinute >= 60) {
+                        currentHour += Math.floor(currentMinute / 60);
+                        currentMinute %= 60;
+                    }
+                }
+                
+                return slots;
+            }
+            
+            function initApp() {
+                updateDateDisplay();
+                renderStats();
+                renderTimeBlocks();
+                populateTimeOptions();
+                updateTimeIndicator();
+                
+                // Set up interval to update time indicator
+                setInterval(updateTimeIndicator, 60000); // Update every minute
+                
+                // Load data from localStorage if available
+                loadFromLocalStorage();
+                
+                // Attach event handlers
+                attachEventHandlers();
+            }
+            
+            // Update the date display
+            function updateDateDisplay() {
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                $('#currentDate').text(appData.currentDate.toLocaleDateString('en-US', options));
+            }
+            
+            // Render stats section
+            function renderStats() {
+                const statsSection = $('.mb-10.grid');
+                statsSection.empty();
+                
+                // Completion Rate
+                statsSection.append(`
+                    <div class="glass-card rounded-xl p-5">
+                        <h3 class="text-lg font-medium text-gray-300 mb-2">Completion Rate</h3>
+                        <div class="flex items-end justify-between mb-2">
+                            <span class="text-3xl font-bold text-white">${appData.stats.completionRate.value}%</span>
+                            <span class="text-sm ${appData.stats.completionRate.direction === 'up' ? 'text-green-400' : 'text-red-400'}">
+                                ${appData.stats.completionRate.direction === 'up' ? '+' : '-'}${appData.stats.completionRate.change}% from yesterday
+                            </span>
+                        </div>
+                        <div class="bg-gray-700 rounded-full h-2 mb-2">
+                            <div class="progress-bar rounded-full" style="width: ${appData.stats.completionRate.value}%"></div>
+                        </div>
+                    </div>
+                `);
+                
+                // Tasks Completed
+                statsSection.append(`
+                    <div class="glass-card rounded-xl p-5">
+                        <h3 class="text-lg font-medium text-gray-300 mb-2">Tasks Completed</h3>
+                        <div class="flex items-end justify-between">
+                            <span class="text-3xl font-bold text-white">${appData.stats.tasksCompleted.completed}/${appData.stats.tasksCompleted.total}</span>
+                            <span class="text-sm text-blue-400">Today's Progress: +${appData.stats.tasksCompleted.progress}</span>
+                        </div>
+                        <div class="mt-4 flex items-center">
+                            <div class="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                            <span class="text-sm text-gray-400">${appData.stats.tasksCompleted.total - appData.stats.tasksCompleted.completed} tasks remaining</span>
+                        </div>
+                    </div>
+                `);
+                
+                // Focus Time
+                statsSection.append(`
+                    <div class="glass-card rounded-xl p-5">
+                        <h3 class="text-lg font-medium text-gray-300 mb-2">Focus Time</h3>
+                        <div class="flex items-end justify-between">
+                            <span class="text-3xl font-bold text-white">${appData.stats.focusTime.current}</span>
+                            <span class="text-sm text-gray-400">Goal: ${appData.stats.focusTime.goal}</span>
+                        </div>
+                        <div class="bg-gray-700 rounded-full h-2 mt-4">
+                            <div class="progress-bar rounded-full" style="width: ${appData.stats.focusTime.percentage}%"></div>
+                        </div>
+                    </div>
+                `);
+                
+                // Productivity Score
+                const weekData = appData.stats.productivityScore.weekData;
+                const maxHeight = 12;
+                const bars = weekData.map(value => {
+                    const height = (value / Math.max(...weekData)) * maxHeight;
+                    return `<div class="w-1/7 h-${Math.round(height)} bg-blue-${400 + Math.round(value * 30)} rounded-sm"></div>`;
+                }).join('');
+                
+                statsSection.append(`
+                    <div class="glass-card rounded-xl p-5">
+                        <h3 class="text-lg font-medium text-gray-300 mb-2">Productivity Score</h3>
+                        <div class="flex items-end justify-between mb-2">
+                            <span class="text-3xl font-bold text-white">${appData.stats.productivityScore.value}</span>
+                            <span class="text-sm ${appData.stats.productivityScore.direction === 'up' ? 'text-green-400' : 'text-red-400'}">
+                                ${appData.stats.productivityScore.direction === 'up' ? '+' : '-'}${appData.stats.productivityScore.change} points
+                            </span>
+                        </div>
+                        <div class="h-12 flex items-end space-x-1">
+                            ${bars}
+                        </div>
+                    </div>
+                `);
+            }
+            
+            // Render time blocks
+            function renderTimeBlocks() {
+                const timeBlocksContainer = $('#timeBlocksContainer');
+                timeBlocksContainer.empty();
+                
+                // Destroy existing sortable instances
+                appData.sortableInstances.forEach(instance => {
+                    if (instance && typeof instance.destroy === 'function') {
+                        instance.destroy();
+                    }
+                });
+                appData.sortableInstances = [];
+                
+                // Create time slots
+                appData.timeSlots.forEach((timeSlot, index) => {
+                    if (index < appData.timeSlots.length - 1) {
+                        const nextTimeSlot = appData.timeSlots[index + 1];
+                        timeBlocksContainer.append(createTimeSlot(timeSlot, nextTimeSlot));
+                    }
+                });
+                
+                // Process multi-slot tasks
+                processMultiSlotTasks();
+                
+                // Initialize sortable for each time slot
+                initializeSortable();
+                
+                // Add time indicator
+                updateTimeIndicator();
+            }
+            
+            // Create a time slot with tasks
+            function createTimeSlot(startTime, endTime) {
+                const formattedStartTime = formatTime(startTime);
+                
+                // Get tasks that start in this time slot
+                const tasksInSlot = appData.tasks.filter(task => task.startTime === startTime);
+                
+                // Create task cards HTML
+                let tasksHtml = '';
+                tasksInSlot.forEach(task => {
+                    tasksHtml += createTaskCard(task);
+                });
+                
+                return `
+                    <div class="time-slot flex" data-start="${startTime}" data-end="${endTime}">
+                        <div class="time-column py-2 text-gray-400">${formattedStartTime}</div>
+                        <div class="flex-1 pl-4">
+                            <div class="task-list" data-start="${startTime}">
+                                ${tasksHtml}
+                            </div>
+                            <div class="add-task-btn" data-start="${startTime}" data-end="${endTime}">
+                                <i class="fas fa-plus-circle mr-2"></i> Add Task
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Process multi-slot tasks
+            function processMultiSlotTasks() {
+                appData.tasks.forEach(task => {
+                    const startIndex = appData.timeSlots.indexOf(task.startTime);
+                    const endIndex = appData.timeSlots.indexOf(task.endTime);
+                    
+                    // If task spans multiple slots, add continuation indicators
+                    if (endIndex - startIndex > 1) {
+                        for (let i = startIndex + 1; i < endIndex; i++) {
+                            const slotTime = appData.timeSlots[i];
+                            const taskList = $(`.task-list[data-start="${slotTime}"]`);
+                            
+                            // Add a continuation indicator
+                            taskList.append(`
+                                <div class="multi-slot-task" data-parent-task="${task.id}">
+                                    <div class="text-xs text-gray-400">Continued: ${task.name}</div>
+                                </div>
+                            `);
+                            
+                            // Hide the add task button for this slot
+                            $(`.add-task-btn[data-start="${slotTime}"]`).addClass('hidden');
+                        }
+                    }
+                });
+            }
+            
+            // Create a task card
+            function createTaskCard(task) {
+                const statusClass = task.completed ? 'completed-task' : 'active-task';
+                const titleColor = task.completed ? 'text-green-400' : 'text-yellow-400';
+                
+                // Calculate task duration
+                const startMinutes = convertTimeToMinutes(task.startTime);
+                const endMinutes = convertTimeToMinutes(task.endTime);
+                const durationMinutes = endMinutes - startMinutes;
+                const durationHours = Math.floor(durationMinutes / 60);
+                const remainingMinutes = durationMinutes % 60;
+                const durationText = durationHours > 0 ? 
+                    `${durationHours}h ${remainingMinutes > 0 ? remainingMinutes + 'm' : ''}` : 
+                    `${durationMinutes}m`;
+                
+                return `
+                    <div class="task-card ${statusClass} priority-${task.priority} p-3" 
+                         data-id="${task.id}" 
+                         data-start="${task.startTime}" 
+                         data-end="${task.endTime}">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <h4 class="${titleColor} font-medium">${task.name}</h4>
+                                <p class="text-gray-400 text-sm mt-1">${task.description}</p>
+                                <div class="flex items-center mt-2">
+                                    <span class="text-xs text-gray-500 mr-2">${formatTime(task.startTime)} - ${formatTime(task.endTime)}</span>
+                                    <span class="task-duration">${durationText}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <button class="task-complete-btn w-6 h-6 rounded-full ${task.completed ? 'bg-green-600' : 'border border-gray-600 hover:bg-gray-700'} flex items-center justify-center" data-id="${task.id}">
+                                    <i class="fas fa-check ${task.completed ? 'text-white' : 'text-gray-600'}"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Initialize Sortable.js for drag and drop
+            function initializeSortable() {
+                document.querySelectorAll('.task-list').forEach(el => {
+                    const sortable = new Sortable(el, {
+                        group: 'timeblocks',
+                        animation: 150,
+                        ghostClass: 'sortable-ghost',
+                        chosenClass: 'sortable-chosen',
+                        dragClass: 'sortable-drag',
+                        forceFallback: true,
+                        fallbackClass: 'sortable-fallback',
+                        fallbackOnBody: true,
+                        swapThreshold: 0.65,
+                        onStart: function(evt) {
+                            // Add a class to all potential drop targets
+                            document.querySelectorAll('.time-slot').forEach(slot => {
+                                slot.classList.add('drop-active');
+                            });
+                        },
+                        onEnd: function(evt) {
+                            // Remove drop target class from all slots
+                            document.querySelectorAll('.time-slot').forEach(slot => {
+                                slot.classList.remove('drop-active');
+                            });
+                            
+                            // Get the task element and data
+                            const taskElement = evt.item;
+                            const taskId = parseInt(taskElement.dataset.id);
+                            
+                            // Get the new container's start time
+                            const newStartTime = evt.to.dataset.start;
+                            
+                            // Update the task data
+                            const taskIndex = appData.tasks.findIndex(task => task.id === taskId);
+                            if (taskIndex !== -1) {
+                                const task = appData.tasks[taskIndex];
+                                
+                                // Calculate task duration in minutes
+                                const oldStartMinutes = convertTimeToMinutes(task.startTime);
+                                const oldEndMinutes = convertTimeToMinutes(task.endTime);
+                                const taskDuration = oldEndMinutes - oldStartMinutes;
+                                
+                                // Calculate new end time based on duration
+                                const newStartMinutes = convertTimeToMinutes(newStartTime);
+                                const newEndMinutes = newStartMinutes + taskDuration;
+                                
+                                // Find the closest time slot for the end time
+                                let closestEndTime = appData.timeSlots[appData.timeSlots.length - 1];
+                                for (let i = 0; i < appData.timeSlots.length; i++) {
+                                    const slotMinutes = convertTimeToMinutes(appData.timeSlots[i]);
+                                    if (slotMinutes >= newEndMinutes) {
+                                        closestEndTime = appData.timeSlots[i];
+                                        break;
+                                    }
+                                }
+                                
+                                // Update task times
+                                task.startTime = newStartTime;
+                                task.endTime = closestEndTime;
+                                
+                                // Save changes
+                                saveToLocalStorage();
+                                
+                                // Re-render to ensure proper display of multi-slot tasks
+                                renderTimeBlocks();
+                                
+                                // Show notification
+                                showNotification('Task Moved', `"${task.name}" moved to ${formatTime(newStartTime)}`);
+                            }
+                        }
+                    });
+                    
+                    // Store the sortable instance
+                    appData.sortableInstances.push(sortable);
+                });
+            }
+            
+            // Attach event handlers
+            function attachEventHandlers() {
+                // Task completion toggle
+                $(document).on('click', '.task-complete-btn', function(e) {
+                    e.stopPropagation();
+                    const taskId = parseInt($(this).data('id'));
+                    toggleTaskCompletion(taskId);
+                });
+                
+                // Add task button click
+                $(document).on('click', '.add-task-btn', function() {
+                    const startTime = $(this).data('start');
+                    const endTime = $(this).data('end');
+                    openAddTaskModal(startTime, endTime);
+                });
+                
+                // Task card double-click for editing
+                $(document).on('dblclick', '.task-card', function(e) {
+                    // Don't trigger if clicking on the complete button
+                    if (!$(e.target).closest('.task-complete-btn').length) {
+                        const taskId = parseInt($(this).data('id'));
+                        openEditTaskModal(taskId);
+                    }
+                });
+            }
+            
+            // Open add task modal with pre-filled time
+            function openAddTaskModal(startTime, endTime) {
+                // Reset form and set title
+                $('#taskForm')[0].reset();
+                $('#modalTitle').text('Add New Event');
+                $('#taskId').val('');
+                $('#deleteTaskBtn').addClass('hidden');
+                $('#saveTaskBtn').text('Add Event');
+                
+                // Set the selected time slot
+                $('#selectedTimeSlot').val(startTime);
+                
+                // Pre-select the start and end times
+                $('#startTime').val(startTime);
+                
+                // Find the next time slot after endTime
+                const endTimeIndex = appData.timeSlots.indexOf(endTime);
+                if (endTimeIndex !== -1 && endTimeIndex < appData.timeSlots.length) {
+                    $('#endTime').val(endTime);
+                }
+                
+                // Open the modal
+                $('#eventModal').removeClass('hidden');
+            }
+            
+            // Open edit task modal
+            function openEditTaskModal(taskId) {
+                const task = appData.tasks.find(task => task.id === taskId);
+                if (task) {
+                    // Set modal title
+                    $('#modalTitle').text('Edit Event');
+                    $('#taskId').val(taskId);
+                    $('#deleteTaskBtn').removeClass('hidden');
+                    $('#saveTaskBtn').text('Update Event');
+                    
+                    // Fill form with task data
+                    $('#taskName').val(task.name);
+                    $('#taskDescription').val(task.description);
+                    $('#startTime').val(task.startTime);
+                    $('#endTime').val(task.endTime);
+                    $(`input[name="priority"][value="${task.priority}"]`).prop('checked', true);
+                    
+                    // Open the modal
+                    $('#eventModal').removeClass('hidden');
+                }
+            }
+            
+            // Toggle task completion status
+            function toggleTaskCompletion(taskId) {
+                const taskIndex = appData.tasks.findIndex(task => task.id === taskId);
+                if (taskIndex !== -1) {
+                    appData.tasks[taskIndex].completed = !appData.tasks[taskIndex].completed;
+                    
+                    // Update stats
+                    updateStats();
+                    
+                    // Re-render
+                    renderTimeBlocks();
+                    renderStats();
+                    
+                    // Save to localStorage
+                    saveToLocalStorage();
+                    
+                    // Show notification
+                    if (appData.tasks[taskIndex].completed) {
+                        showNotification('Task Completed', `"${appData.tasks[taskIndex].name}" marked as completed`);
+                    }
+                }
+            }
+            
+            // Update stats based on tasks
+            function updateStats() {
+                const totalTasks = appData.tasks.length;
+                const completedTasks = appData.tasks.filter(task => task.completed).length;
+                
+                appData.stats.tasksCompleted.completed = completedTasks;
+                appData.stats.tasksCompleted.total = totalTasks;
+                appData.stats.completionRate.value = Math.round((completedTasks / totalTasks) * 100) || 0;
+            }
+            
+            // Populate time options in the form
+            function populateTimeOptions() {
+                const startTimeSelect = $('#startTime');
+                const endTimeSelect = $('#endTime');
+                
+                startTimeSelect.empty();
+                endTimeSelect.empty();
+                
+                appData.timeSlots.forEach(timeSlot => {
+                    startTimeSelect.append(`<option value="${timeSlot}">${formatTime(timeSlot)}</option>`);
+                    endTimeSelect.append(`<option value="${timeSlot}">${formatTime(timeSlot)}</option>`);
+                });
+                
+                // Set default end time to 15 minutes after start time
+                startTimeSelect.on('change', function() {
+                    const selectedIndex = startTimeSelect.prop('selectedIndex');
+                    if (selectedIndex < appData.timeSlots.length - 1) {
+                        endTimeSelect.prop('selectedIndex', selectedIndex + 1);
+                    }
+                });
+            }
+            
+            // Update time indicator
+            function updateTimeIndicator() {
+                // Remove existing indicator
+                $('.time-indicator').remove();
+                
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                
+                // Format current time as HH:MM
+                const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMinute.toString().padStart(2, '0')}`;
+                
+                // Find the closest time slots
+                let prevSlotIndex = -1;
+                for (let i = 0; i < appData.timeSlots.length; i++) {
+                    if (appData.timeSlots[i] <= currentTimeStr) {
+                        prevSlotIndex = i;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (prevSlotIndex >= 0) {
+                    const prevSlot = appData.timeSlots[prevSlotIndex];
+                    const nextSlot = appData.timeSlots[prevSlotIndex + 1] || null;
+                    
+                    // Find the time slot element
+                    const timeSlotElement = $(`.time-slot[data-start="${prevSlot}"]`);
+                    
+                    if (timeSlotElement.length > 0) {
+                        const slotTop = timeSlotElement.position().top;
+                        const slotHeight = timeSlotElement.outerHeight();
+                        
+                        // Calculate position based on time
+                        let percentage = 0;
+                        if (nextSlot) {
+                            const prevMinutes = convertTimeToMinutes(prevSlot);
+                            const nextMinutes = convertTimeToMinutes(nextSlot);
+                            const currentMinutes = currentHour * 60 + currentMinute;
+                            
+                            percentage = (currentMinutes - prevMinutes) / (nextMinutes - prevMinutes);
+                        }
+                        
+                        const indicatorTop = slotTop + (slotHeight * percentage);
+                        
+                        // Add time indicator
+                        $('.glass-card.rounded-xl.p-6.relative').append(`
+                            <div class="time-indicator" style="top: ${indicatorTop}px;">
+                                <span class="absolute -left-16 -top-3 text-xs text-red-400">${formatTime(currentTimeStr)}</span>
+                            </div>
+                        `);
+                        
+                        // Check for upcoming tasks
+                        checkUpcomingTasks();
+                    }
+                }
+            }
+            
+            // Check for upcoming tasks and show notifications
+            function checkUpcomingTasks() {
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                
+                appData.tasks.forEach(task => {
+                    if (!task.completed) {
+                        const taskStartMinutes = convertTimeToMinutes(task.startTime);
+                        const minutesUntilTask = taskStartMinutes - currentTimeInMinutes;
+                        
+                        // Notify if task is starting in 5 minutes
+                        if (minutesUntilTask > 0 && minutesUntilTask <= 5) {
+                            showNotification('Upcoming: ' + task.name, 'Starting in ' + minutesUntilTask + ' minutes');
+                        }
+                    }
+                });
+            }
+            
+            // Show notification
+            function showNotification(title, message) {
+                $('#notificationTitle').text(title);
+                $('#notificationMessage').text(message);
+                $('#notification').removeClass('hidden');
+                
+                // Hide notification after 5 seconds
+                setTimeout(() => {
+                    $('#notification').addClass('hidden');
+                }, 5000);
+            }
+            
+            // Convert time string (HH:MM) to minutes since midnight
+            function convertTimeToMinutes(timeStr) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                return hours * 60 + minutes;
+            }
+            
+            // Format time for display
+            function formatTime(timeStr) {
+                const [hours, minutes] = timeStr.split(':').map(Number);
+                const period = hours >= 12 ? 'PM' : 'AM';
+                const displayHours = hours % 12 || 12;
+                return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+            }
+            
+            // Save data to localStorage
+            function saveToLocalStorage() {
+                const dataToSave = {
+                    tasks: appData.tasks,
+                    stats: appData.stats,
+                    lastUpdated: new Date().toISOString()
+                };
+                localStorage.setItem('timeblockData', JSON.stringify(dataToSave));
+            }
+            
+            // Load data from localStorage
+            function loadFromLocalStorage() {
+                const savedData = localStorage.getItem('timeblockData');
+                if (savedData) {
+                    try {
+                        const parsedData = JSON.parse(savedData);
+                        
+                        // Check if data is from today
+                        const lastUpdated = new Date(parsedData.lastUpdated);
+                        const today = new Date();
+                        
+                        if (lastUpdated.toDateString() === today.toDateString()) {
+                            // Only load today's data
+                            appData.tasks = parsedData.tasks;
+                            appData.stats = parsedData.stats;
+                            
+                            // Re-render
+                            renderTimeBlocks();
+                            renderStats();
+                        }
+                    } catch (error) {
+                        console.error('Error loading data from localStorage:', error);
+                    }
+                }
+            }
+            
+            // Event handlers
+            $('#addEventBtn').on('click', function() {
+                // Reset form
+                $('#taskForm')[0].reset();
+                
+                // Set default times
+                const currentHour = new Date().getHours();
+                const currentMinute = new Date().getMinutes();
+                
+                // Round to nearest 15 minutes
+                const roundedMinute = Math.ceil(currentMinute / 15) * 15;
+                let hour = currentHour;
+                let minute = roundedMinute;
+                
+                if (minute >= 60) {
+                    hour += 1;
+                    minute = 0;
+                }
+                
+                const startTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                
+
+                // Find the index of the closest time slot
+                let startTimeIndex = 0;
+                for (let i = 0; i < appData.timeSlots.length; i++) {
+                    if (appData.timeSlots[i] >= startTime) {
+                        startTimeIndex = i;
+                        break;
+                    }
+                }
+                
+                // Set the start and end times
+                $('#startTime').prop('selectedIndex', startTimeIndex);
+                $('#endTime').prop('selectedIndex', Math.min(startTimeIndex + 1, appData.timeSlots.length - 1));
+                
+                // Set modal title and hide delete button
+                $('#modalTitle').text('Add New Event');
+                $('#taskId').val('');
+                $('#deleteTaskBtn').addClass('hidden');
+                $('#saveTaskBtn').text('Add Event');
+                
+                // Open modal
+                $('#eventModal').removeClass('hidden');
+            });
+            
+            $('#closeModal, #cancelBtn').on('click', function() {
+                $('#eventModal').addClass('hidden');
+            });
+            
+            // Delete task button
+            $('#deleteTaskBtn').on('click', function() {
+                const taskId = parseInt($('#taskId').val());
+                if (taskId) {
+                    const taskIndex = appData.tasks.findIndex(task => task.id === taskId);
+                    if (taskIndex !== -1) {
+                        const taskName = appData.tasks[taskIndex].name;
+                        
+                        // Remove the task
+                        appData.tasks.splice(taskIndex, 1);
+                        
+                        // Update stats
+                        updateStats();
+                        
+                        // Re-render
+                        renderTimeBlocks();
+                        renderStats();
+                        
+                        // Save to localStorage
+                        saveToLocalStorage();
+                        
+                        // Close modal
+                        $('#eventModal').addClass('hidden');
+                        
+                        // Show notification
+                        showNotification('Task Deleted', `"${taskName}" has been removed from your schedule`);
+                    }
+                }
+            });
+            
+            // Form submission
+            $('#taskForm').on('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const taskId = $('#taskId').val();
+                const taskName = $('#taskName').val();
+                const taskDescription = $('#taskDescription').val();
+                const startTime = $('#startTime').val();
+                const endTime = $('#endTime').val();
+                const priority = $('input[name="priority"]:checked').val();
+                
+                // Validate end time is after start time
+                if (convertTimeToMinutes(endTime) <= convertTimeToMinutes(startTime)) {
+                    showNotification('Error', 'End time must be after start time');
+                    return;
+                }
+                
+                if (taskId) {
+                    // Update existing task
+                    const taskIndex = appData.tasks.findIndex(task => task.id === parseInt(taskId));
+                    if (taskIndex !== -1) {
+                        // Update task properties
+                        appData.tasks[taskIndex].name = taskName;
+                        appData.tasks[taskIndex].description = taskDescription;
+                        appData.tasks[taskIndex].startTime = startTime;
+                        appData.tasks[taskIndex].endTime = endTime;
+                        appData.tasks[taskIndex].priority = priority;
+                        
+                        // Show notification
+                        showNotification('Task Updated', `"${taskName}" has been updated`);
+                    }
+                } else {
+                    // Create new task
+                    const newTask = {
+                        id: Date.now(), // Use timestamp as ID
+                        name: taskName,
+                        description: taskDescription,
+                        startTime: startTime,
+                        endTime: endTime,
+                        completed: false,
+                        priority: priority
+                    };
+                    
+                    // Add to tasks array
+                    appData.tasks.push(newTask);
+                    
+                    // Show notification
+                    showNotification('Task Added', `"${taskName}" added to your schedule`);
+                }
+                
+                // Update stats
+                updateStats();
+                
+                // Re-render
+                renderTimeBlocks();
+                renderStats();
+                
+                // Save to localStorage
+                saveToLocalStorage();
+                
+                // Close modal and reset form
+                $('#eventModal').addClass('hidden');
+                $('#taskForm')[0].reset();
+            });
+            
+            // Navigation buttons
+            $('#prevDay').on('click', function() {
+                appData.currentDate.setDate(appData.currentDate.getDate() - 1);
+                updateDateDisplay();
+                // In a real app, you would load tasks for the previous day
+                showNotification('Date Changed', 'Viewing previous day');
+            });
+            
+            $('#nextDay').on('click', function() {
+                appData.currentDate.setDate(appData.currentDate.getDate() + 1);
+                updateDateDisplay();
+                // In a real app, you would load tasks for the next day
+                showNotification('Date Changed', 'Viewing next day');
+            });
+            
+            $('#todayBtn').on('click', function() {
+                appData.currentDate = new Date();
+                updateDateDisplay();
+                // In a real app, you would load tasks for today
+                showNotification('Date Changed', 'Viewing today');
+            });
+            
+            // Export button
+            $('#exportBtn').on('click', function() {
+                // Create export data
+                const exportData = {
+                    date: appData.currentDate.toISOString().split('T')[0],
+                    tasks: appData.tasks,
+                    stats: appData.stats
+                };
+                
+                // Convert to JSON string
+                const jsonStr = JSON.stringify(exportData, null, 2);
+                
+                // Create download link
+                const blob = new Blob([jsonStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                
+                // Create temporary link and trigger download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timeblock_${appData.currentDate.toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Clean up
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showNotification('Export Complete', 'Your schedule has been exported');
+            });
+        });
+    </script>
+</body>
+</html>

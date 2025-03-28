@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeBloc - Smart Time Blocking App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f4ff',
+                            100: '#e0e9ff',
+                            200: '#c7d7fe',
+                            300: '#a4bcfc',
+                            400: '#8098f9',
+                            500: '#6374f4',
+                            600: '#4f54e8',
+                            700: '#4042cf',
+                            800: '#3639a7',
+                            900: '#303583',
+                            950: '#1e1e4b',
+                        },
+                        work: '#4f54e8',
+                        personal: '#ec4899',
+                        meeting: '#f59e0b',
+                        learning: '#10b981',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        'task': '0 2px 4px rgba(0, 0, 0, 0.1)',
+                        'task-hover': '0 4px 8px rgba(0, 0, 0, 0.15)',
+                    },
+                    animation: {
+                        'pulse-light': 'pulse-light 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        'pulse-light': {
+                            '0%, 100%': { opacity: 1 },
+                            '50%': { opacity: 0.8 },
+                        },
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 8px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+        
+        /* Time block styles */
+        .time-block {
+            height: 60px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .time-block:hover {
+            background-color: rgba(79, 84, 232, 0.05);
+        }
+        
+        .time-label {
+            position: absolute;
+            top: -10px;
+            left: -70px;
+            width: 60px;
+            text-align: right;
+            color: #6b7280;
+            font-size: 0.8rem;
+        }
+        
+        /* Quarter-hour markers */
+        .quarter-hour-marker {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            pointer-events: none;
+        }
+        
+        .quarter-hour-marker.min-15 {
+            top: 15px;
+        }
+        
+        .quarter-hour-marker.min-30 {
+            top: 30px;
+        }
+        
+        .quarter-hour-marker.min-45 {
+            top: 45px;
+        }
+        
+        /* Task styles */
+        .task {
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            margin: 0.25rem;
+            color: white;
+            font-size: 0.85rem;
+            position: absolute;
+            overflow: hidden;
+            cursor: grab;
+            transition: all 0.2s;
+            z-index: 1;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .task:hover {
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+            z-index: 10;
+        }
+        
+        .task.dragging {
+            opacity: 0.8;
+            cursor: grabbing;
+            z-index: 100;
+        }
+        
+        .task.work {
+            background-color: theme('colors.work');
+        }
+        
+        .task.personal {
+            background-color: theme('colors.personal');
+        }
+        
+        .task.meeting {
+            background-color: theme('colors.meeting');
+        }
+        
+        .task.learning {
+            background-color: theme('colors.learning');
+        }
+        
+        .task-15min {
+            height: 15px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.5rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .task-15min .task-time {
+            display: none;
+        }
+        
+        .task-15min:hover {
+            height: auto;
+            min-height: 15px;
+            z-index: 10;
+        }
+        
+        .task-15min:hover .task-time {
+            display: inline;
+        }
+        
+        .task-30min {
+            height: 30px;
+        }
+        
+        .task-45min {
+            height: 45px;
+        }
+        
+        .task-60min {
+            height: 60px;
+        }
+        
+        .task.completed {
+            opacity: 0.7;
+            text-decoration: line-through;
+        }
+        
+        .complete-task {
+            position: absolute;
+            right: 5px;
+            top: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0;
+        }
+        
+        .task:hover .complete-task {
+            opacity: 1;
+        }
+        
+        .complete-task:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.1);
+        }
+        
+        /* Time slot highlight when dragging */
+        .time-block.drag-over {
+            background-color: rgba(79, 84, 232, 0.1);
+            border: 2px dashed #4f54e8;
+        }
+        
+        .calendar-container {
+            position: relative;
+            margin-left: 70px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 antialiased">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white border-r border-gray-200 flex flex-col">
+            <div class="p-5">
+                <div class="flex items-center space-x-2 mb-8">
+                    <div class="bg-primary-600 text-white p-2 rounded-lg">
+                        <i class="bi bi-clock-fill text-xl"></i>
+                    </div>
+                    <h1 class="text-xl font-bold text-primary-600">TimeBloc</h1>
+                </div>
+                
+                <nav class="space-y-1 mb-8">
+                    <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg bg-primary-50 text-primary-700">
+                        <i class="bi bi-calendar-week mr-3 text-lg"></i>
+                        Calendar
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-graph-up mr-3 text-lg"></i>
+                        Insights
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-hourglass-split mr-3 text-lg"></i>
+                        Focus Mode
+                    </a>
+                    <a href="#" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-700 hover:bg-gray-100">
+                        <i class="bi bi-gear mr-3 text-lg"></i>
+                        Settings
+                    </a>
+                </nav>
+                
+                <div class="mb-8">
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Categories</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-work mr-2"></span>
+                            <span class="text-sm">Work</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-personal mr-2"></span>
+                            <span class="text-sm">Personal</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-meeting mr-2"></span>
+                            <span class="text-sm">Meetings</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-3 h-3 rounded-full bg-learning mr-2"></span>
+                            <span class="text-sm">Learning</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Today's Progress</h3>
+                    <div class="flex justify-between mb-1">
+                        <span class="text-xs text-gray-600">Completed</span>
+                        <span class="text-xs font-semibold">65%</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 65%"></div>
+                    </div>
+                    <div class="text-xs text-gray-600 flex items-center">
+                        <i class="bi bi-check-circle-fill text-green-500 mr-1"></i>
+                        <span id="completedTasksCount">8/12</span> tasks completed
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="bg-white border-b border-gray-200 py-4 px-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-800">My Schedule</h2>
+                        <p class="text-sm text-gray-500" id="currentDate">Wednesday, March 15, 2023</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="p-2 rounded-full hover:bg-gray-100" id="prevDay">
+                            <i class="bi bi-chevron-left"></i>
+                        </button>
+                        <button class="p-2 rounded-full hover:bg-gray-100" id="nextDay">
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="ml-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors" id="todayBtn">
+                            Today
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Calendar View -->
+            <div class="flex-1 overflow-auto p-6">
+                <div class="grid grid-cols-5 gap-2 mb-4">
+                    <div class="text-center text-sm font-medium text-gray-600">Monday</div>
+                    <div class="text-center text-sm font-medium text-gray-600">Tuesday</div>
+                    <div class="text-center text-sm font-medium text-gray-800 bg-primary-50 py-1 rounded-md">Wednesday</div>
+                    <div class="text-center text-sm font-medium text-gray-600">Thursday</div>
+                    <div class="text-center text-sm font-medium text-gray-600">Friday</div>
+                </div>
+
+                <div class="calendar-container bg-white rounded-xl shadow-sm border border-gray-200" id="calendarContainer">
+                    <!-- Time blocks will be generated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Sidebar - Insights -->
+        <div class="w-80 bg-white border-l border-gray-200 overflow-y-auto">
+            <div class="p-5">
+                <h3 class="text-lg font-bold text-gray-800 mb-5">Insights & Focus</h3>
+
+                <!-- Productivity Score -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-sm font-semibold text-gray-700">Productivity Score</h4>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">Good</span>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-2">85<span class="text-lg font-normal text-gray-500">/100</span></h2>
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-2">
+                        <div class="bg-green-500 h-2 rounded-full" style="width: 85%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500">15% higher than last week</p>
+                </div>
+
+                <!-- Time Distribution -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-4">Time Distribution</h4>
+                    <div class="h-48 mb-4">
+                        <canvas id="timeDistributionChart"></canvas>
+                    </div>
+                    <div id="timeDistributionStats" class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-work mr-2"></span>
+                                <span class="text-sm">Work</span>
+                            </div>
+                            <span class="text-sm font-semibold">4h 45m</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-meeting mr-2"></span>
+                                <span class="text-sm">Meetings</span>
+                            </div>
+                            <span class="text-sm font-semibold">1h 30m</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-personal mr-2"></span>
+                                <span class="text-sm">Personal</span>
+                            </div>
+                            <span class="text-sm font-semibold">2h 15m</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <span class="w-3 h-3 rounded-full bg-learning mr-2"></span>
+                                <span class="text-sm">Learning</span>
+                            </div>
+                            <span class="text-sm font-semibold">45m</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Focus Mode -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-5">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-4">Focus Mode</h4>
+                    <div class="text-center">
+                        <div id="focusTimer" class="text-4xl font-bold mb-2">25:00</div>
+                        <p class="text-xs text-gray-500 mb-4">Pomodoro Timer</p>
+                        <button id="focusStartBtn" class="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                            Start
+                        </button>
+                    </div>
+                </div>
+
+                <!-- AI Recommendations -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <h4 class="text-sm font-semibold text-gray-700 flex items-center mb-4">
+                        <i class="bi bi-lightning-fill text-amber-500 mr-1"></i>
+                        Smart Recommendations
+                    </h4>
+                    <div class="space-y-3">
+                        <div class="pb-3 border-b border-gray-100">
+                            <p class="text-xs text-gray-600">Your most productive time is between <span class="font-semibold">9 AM - 11 AM</span>. Schedule important tasks during this window.</p>
+                        </div>
+                        <div class="pb-3 border-b border-gray-100">
+                            <p class="text-xs text-gray-600">You tend to miss <span class="font-semibold">afternoon meetings</span>. Consider rescheduling them to mornings.</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-600">Taking short breaks improves your productivity. Add more 15-min breaks to your schedule.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Button -->
+    <button id="addTaskBtn" class="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+        <i class="bi bi-plus-lg text-2xl"></i>
+    </button>
+
+    <!-- Modal for adding new task -->
+    <div id="addTaskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-800">Add New Task</h3>
+                <button class="text-gray-400 hover:text-gray-500" id="closeAddTaskModal">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="addTaskForm">
+                    <div class="mb-4">
+                        <label for="taskTitle" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                        <input type="text" id="taskTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter task title" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="startTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <select id="startTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                                <!-- Options will be generated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="endTime" class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <select id="endTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                                <!-- Options will be generated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="taskCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="taskCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="learning">Learning</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="taskDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea id="taskDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Add details about this task"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-end space-x-2">
+                <button id="cancelAddTask" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                    Cancel
+                </button>
+                <button id="saveTaskBtn" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    Add Task
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for editing task -->
+    <div id="editTaskModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 overflow-hidden">
+            <div class="flex justify-between items-center border-b border-gray-200 px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-800">Edit Task</h3>
+                <button class="text-gray-400 hover:text-gray-500" id="closeEditTaskModal">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <form id="editTaskForm">
+                    <input type="hidden" id="editTaskId">
+                    <div class="mb-4">
+                        <label for="editTaskTitle" class="block text-sm font-medium text-gray-700 mb-1">Task Title</label>
+                        <input type="text" id="editTaskTitle" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Enter task title" required>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label for="editStartTime" class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
+                            <select id="editStartTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                                <!-- Options will be generated dynamically -->
+                            </select>
+                        </div>
+                        <div>
+                            <label for="editEndTime" class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
+                            <select id="editEndTime" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                                <!-- Options will be generated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label for="editTaskCategory" class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                        <select id="editTaskCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" required>
+                            <option value="work">Work</option>
+                            <option value="personal">Personal</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="learning">Learning</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label for="editTaskDescription" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                        <textarea id="editTaskDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500" placeholder="Add details about this task"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label for="editTaskStatus" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                        <select id="editTaskStatus" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="partial">Partially Completed</option>
+                            <option value="missed">Missed</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-gray-50 px-6 py-4 flex justify-between">
+                <button id="deleteTaskBtn" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+                    Delete
+                </button>
+                <div class="space-x-2">
+                    <button id="cancelEditTask" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors">
+                        Cancel
+                    </button>
+                    <button id="updateTaskBtn" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                        Update Task
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // App state
+        const state = {
+            tasks: [],
+            currentDate: new Date(),
+            focusTimerRunning: false,
+            focusTimeRemaining: 25 * 60, // 25 minutes in seconds
+            focusInterval: null,
+            draggedTask: null
+        };
+
+        // DOM elements
+        const calendarContainer = document.getElementById('calendarContainer');
+        const currentDateEl = document.getElementById('currentDate');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const saveTaskBtn = document.getElementById('saveTaskBtn');
+        const updateTaskBtn = document.getElementById('updateTaskBtn');
+        const deleteTaskBtn = document.getElementById('deleteTaskBtn');
+        const prevDayBtn = document.getElementById('prevDay');
+        const nextDayBtn = document.getElementById('nextDay');
+        const todayBtn = document.getElementById('todayBtn');
+        const focusTimerEl = document.getElementById('focusTimer');
+        const focusStartBtn = document.getElementById('focusStartBtn');
+        const completedTasksCountEl = document.getElementById('completedTasksCount');
+        
+        // Modal elements
+        const addTaskModal = document.getElementById('addTaskModal');
+        const editTaskModal = document.getElementById('editTaskModal');
+        const closeAddTaskModal = document.getElementById('closeAddTaskModal');
+        const closeEditTaskModal = document.getElementById('closeEditTaskModal');
+        const cancelAddTask = document.getElementById('cancelAddTask');
+        const cancelEditTask = document.getElementById('cancelEditTask');
+
+        // Initialize the app
+        function init() {
+            // Load tasks from localStorage
+            loadTasks();
+            
+            // Generate time blocks
+            generateTimeBlocks();
+            
+            // Render tasks
+            renderTasks();
+            
+            // Update date display
+            updateDateDisplay();
+            
+            // Initialize time selectors in the add task modal
+            initializeTimeSelectors();
+            
+            // Initialize chart
+            initializeChart();
+            
+            // Set up event listeners
+            setupEventListeners();
+        }
+
+        // Load tasks from localStorage
+        function loadTasks() {
+            const savedTasks = localStorage.getItem('timebloc-tasks');
+            if (savedTasks) {
+                state.tasks = JSON.parse(savedTasks);
+                // Convert date strings back to Date objects
+                state.tasks.forEach(task => {
+                    task.date = new Date(task.date);
+                });
+            } else {
+                // Sample tasks for demo
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                state.tasks = [
+                    {
+                        id: 1,
+                        title: 'Team Standup',
+                        startTime: '08:00',
+                        endTime: '08:30',
+                        category: 'meeting',
+                        description: 'Daily team standup meeting',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 2,
+                        title: 'Project Planning',
+                        startTime: '09:00',
+                        endTime: '10:00',
+                        category: 'work',
+                        description: 'Plan next sprint',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 3,
+                        title: 'Code Review',
+                        startTime: '10:00',
+                        endTime: '10:45',
+                        category: 'work',
+                        description: 'Review PR #123',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 4,
+                        title: 'Quick Break',
+                        startTime: '11:00',
+                        endTime: '11:15',
+                        category: 'personal',
+                        description: 'Coffee break',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 5,
+                        title: 'Client Call',
+                        startTime: '11:15',
+                        endTime: '11:45',
+                        category: 'meeting',
+                        description: 'Discuss project requirements',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 6,
+                        title: 'Lunch Break',
+                        startTime: '12:00',
+                        endTime: '13:00',
+                        category: 'personal',
+                        description: 'Lunch',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 7,
+                        title: 'Development Work',
+                        startTime: '13:00',
+                        endTime: '15:00',
+                        category: 'work',
+                        description: 'Work on new feature',
+                        date: today,
+                        status: 'completed'
+                    },
+                    {
+                        id: 8,
+                        title: 'Learning: React Hooks',
+                        startTime: '15:00',
+                        endTime: '15:45',
+                        category: 'learning',
+                        description: 'Study React Hooks',
+                        date: today,
+                        status: 'pending'
+                    },
+                    {
+                        id: 9,
+                        title: 'Weekly Review',
+                        startTime: '16:00',
+                        endTime: '16:30',
+                        category: 'meeting',
+                        description: 'Team weekly review',
+                        date: today,
+                        status: 'pending'
+                    },
+                    {
+                        id: 10,
+                        title: 'Coffee Break',
+                        startTime: '16:30',
+                        endTime: '16:45',
+                        category: 'personal',
+                        description: 'Quick coffee',
+                        date: today,
+                        status: 'pending'
+                    },
+                    {
+                        id: 11,
+                        title: 'Email Cleanup',
+                        startTime: '17:00',
+                        endTime: '17:45',
+                        category: 'work',
+                        description: 'Clear inbox',
+                        date: today,
+                        status: 'pending'
+                    },
+                    {
+                        id: 12,
+                        title: 'Gym Workout',
+                        startTime: '18:00',
+                        endTime: '19:00',
+                        category: 'personal',
+                        description: 'Cardio and weights',
+                        date: today,
+                        status: 'pending'
+                    }
+                ];
+                
+                saveTasks();
+            }
+        }
+
+        // Save tasks to localStorage
+        function saveTasks() {
+            localStorage.setItem('timebloc-tasks', JSON.stringify(state.tasks));
+            updateCompletedTasksCount();
+            updateTimeDistribution();
+        }
+
+        // Generate time blocks for the calendar
+        function generateTimeBlocks() {
+            calendarContainer.innerHTML = '';
+            
+            // Create time blocks from 8 AM to 8 PM
+            for (let hour = 8; hour <= 20; hour++) {
+                const timeBlock = document.createElement('div');
+                timeBlock.className = 'time-block border-b border-gray-100';
+                timeBlock.dataset.hour = hour;
+                
+                const timeLabel = document.createElement('div');
+                timeLabel.className = 'time-label text-gray-500';
+                timeLabel.textContent = formatHour(hour);
+                
+                // Add quarter-hour markers
+                for (let minute = 15; minute < 60; minute += 15) {
+                    const marker = document.createElement('div');
+                    marker.className = `quarter-hour-marker min-${minute} bg-gray-100`;
+                    timeBlock.appendChild(marker);
+                }
+                
+                timeBlock.appendChild(timeLabel);
+                calendarContainer.appendChild(timeBlock);
+                
+                // Add click event to create task at this time
+                timeBlock.addEventListener('click', (e) => {
+                    // Only trigger if clicking directly on the time block, not on a task
+                    if (e.target === timeBlock || e.target.classList.contains('quarter-hour-marker')) {
+                        const clickY = e.clientY - timeBlock.getBoundingClientRect().top;
+                        const minute = Math.floor(clickY / 15) * 15;
+                        openAddTaskModalAtTime(hour, minute);
+                    }
+                });
+                
+                // Add drag and drop event listeners
+                timeBlock.addEventListener('dragover', handleDragOver);
+                timeBlock.addEventListener('dragleave', handleDragLeave);
+                timeBlock.addEventListener('drop', handleDrop);
+            }
+        }
+
+        // Format hour to AM/PM format
+        function formatHour(hour) {
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const hour12 = hour % 12 || 12;
+            return `${hour12}:00 ${ampm}`;
+        }
+
+        // Render tasks on the calendar
+        function renderTasks() {
+            // Clear existing tasks
+            document.querySelectorAll('.task').forEach(el => el.remove());
+            
+            // Filter tasks for the current date
+            const currentDateStart = new Date(state.currentDate);
+            currentDateStart.setHours(0, 0, 0, 0);
+            
+            const currentDateEnd = new Date(state.currentDate);
+            currentDateEnd.setHours(23, 59, 59, 999);
+            
+            const tasksToday = state.tasks.filter(task => 
+                task.date >= currentDateStart && task.date <= currentDateEnd
+            );
+            
+            // Group tasks by time slots
+            const timeSlots = {};
+            
+            // First, identify all time slots and the tasks that occupy them
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+                
+                // Create or update time slots for this task's duration
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    if (!timeSlots[time]) {
+                        timeSlots[time] = [];
+                    }
+                    timeSlots[time].push(task.id);
+                }
+            });
+            
+            // Calculate the maximum number of overlapping tasks for each task
+            const taskOverlaps = {};
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+                
+                let maxOverlap = 0;
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    const overlapsAtTime = timeSlots[time] ? timeSlots[time].length : 0;
+                    maxOverlap = Math.max(maxOverlap, overlapsAtTime);
+                }
+                
+                taskOverlaps[task.id] = maxOverlap;
+            });
+            
+            // Now assign positions to each task
+            const taskPositions = {};
+            
+            tasksToday.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+                
+                // Find all tasks that overlap with this one
+                const overlappingTaskIds = new Set();
+                for (let time = startMinutes; time < endMinutes; time += 15) {
+                    if (timeSlots[time]) {
+                        timeSlots[time].forEach(id => {
+                            if (id !== task.id) {
+                                overlappingTaskIds.add(id);
+                            }
+                        });
+                    }
+                }
+                
+                // Find positions already taken by overlapping tasks
+                const takenPositions = new Set();
+                overlappingTaskIds.forEach(id => {
+                    if (taskPositions[id] !== undefined) {
+                        takenPositions.add(taskPositions[id]);
+                    }
+                });
+                
+                // Find the first available position
+                let position = 0;
+                while (takenPositions.has(position)) {
+                    position++;
+                }
+                
+                taskPositions[task.id] = position;
+            });
+            
+            // Render each task with its calculated position
+            tasksToday.forEach(task => {
+                const position = taskPositions[task.id];
+                const totalPositions = taskOverlaps[task.id];
+                const taskEl = createTaskElement(task, position, totalPositions);
+                calendarContainer.appendChild(taskEl);
+            });
+            
+            updateCompletedTasksCount();
+        }
+
+        // Create a task element
+        function createTaskElement(task, position, totalPositions) {
+            const startHour = parseInt(task.startTime.split(':')[0]);
+            const startMinute = parseInt(task.startTime.split(':')[1]);
+            const endHour = parseInt(task.endTime.split(':')[0]);
+            const endMinute = parseInt(task.endTime.split(':')[1]);
+            
+            // Calculate position and height
+            const startTimeInMinutes = startHour * 60 + startMinute;
+            const endTimeInMinutes = endHour * 60 + endMinute;
+            const durationInMinutes = endTimeInMinutes - startTimeInMinutes;
+            
+            // Calculate top position (relative to 8 AM)
+            const topPosition = (startTimeInMinutes - 8 * 60) / 60 * 60; // 60px per hour
+            
+            // Calculate height (15 minutes = 15px)
+            const height = durationInMinutes / 60 * 60; // 60px per hour
+            
+            const taskEl = document.createElement('div');
+            taskEl.className = `task ${task.category}`;
+            taskEl.dataset.id = task.id;
+            
+            // Make task draggable
+            taskEl.draggable = true;
+            
+            // Add appropriate height class
+            if (durationInMinutes <= 15) {
+                taskEl.classList.add('task-15min');
+            } else if (durationInMinutes <= 30) {
+                taskEl.classList.add('task-30min');
+            } else if (durationInMinutes <= 45) {
+                taskEl.classList.add('task-45min');
+            } else {
+                taskEl.classList.add('task-60min');
+            }
+            
+            // Add status class if not pending
+            if (task.status !== 'pending') {
+                taskEl.classList.add(task.status);
+            }
+            
+            // Set position and height
+            taskEl.style.top = `${topPosition}px`;
+            taskEl.style.height = `${height}px`;
+            
+            // Set width based on position and total positions
+            const width = 100 / totalPositions;
+            taskEl.style.width = `calc(${width}% - 0.5rem)`;
+            taskEl.style.left = `calc(${position * width}% + 0.25rem)`;
+            
+            // For 15-minute tasks, ensure content is visible
+            if (durationInMinutes <= 15) {
+                taskEl.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="truncate">${task.title}</span>
+                        <span class="task-time text-xs">${formatTime(task.startTime)}-${formatTime(task.endTime)}</span>
+                    </div>
+                    <button class="complete-task" title="Mark as Complete" data-id="${task.id}">
+                        <i class="bi bi-check"></i>
+                    </button>
+                `;
+            } else {
+                taskEl.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="truncate">${task.title}</span>
+                        <span class="text-xs">${formatTime(task.startTime)}-${formatTime(task.endTime)}</span>
+                    </div>
+                    <button class="complete-task" title="Mark as Complete" data-id="${task.id}">
+                        <i class="bi bi-check"></i>
+                    </button>
+                `;
+            }
+            
+            // Add event listener for editing
+            taskEl.addEventListener('click', (e) => {
+                // Don't open edit modal if clicking the complete button
+                if (!e.target.closest('.complete-task')) {
+                    openEditTaskModal(task.id);
+                }
+            });
+            
+            // Add drag event listeners
+            taskEl.addEventListener('dragstart', handleDragStart);
+            taskEl.addEventListener('dragend', handleDragEnd);
+            
+            return taskEl;
+        }
+
+        // Format time from 24h to 12h format
+        function formatTime(time) {
+            const [hour, minute] = time.split(':');
+            const hourInt = parseInt(hour);
+            const ampm = hourInt >= 12 ? 'PM' : 'AM';
+            const hour12 = hourInt % 12 || 12;
+            return `${hour12}:${minute} ${ampm}`;
+        }
+
+        // Update the date display
+        function updateDateDisplay() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            currentDateEl.textContent = state.currentDate.toLocaleDateString('en-US', options);
+        }
+
+        // Initialize time selectors in the add task modal
+        function initializeTimeSelectors() {
+            const startTimeSelect = document.getElementById('startTime');
+            const endTimeSelect = document.getElementById('endTime');
+            const editStartTimeSelect = document.getElementById('editStartTime');
+            const editEndTimeSelect = document.getElementById('editEndTime');
+            
+            // Clear existing options
+            startTimeSelect.innerHTML = '';
+            endTimeSelect.innerHTML = '';
+            editStartTimeSelect.innerHTML = '';
+            editEndTimeSelect.innerHTML = '';
+            
+            // Generate time options from 8 AM to 8 PM in 15-minute increments
+            for (let hour = 8; hour <= 20; hour++) {
+                for (let minute = 0; minute < 60; minute += 15) {
+                    const timeValue = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    const timeDisplay = formatTime(timeValue);
+                    
+                    const startOption = document.createElement('option');
+                    startOption.value = timeValue;
+                    startOption.textContent = timeDisplay;
+                    startTimeSelect.appendChild(startOption);
+                    
+                    const endOption = document.createElement('option');
+                    endOption.value = timeValue;
+                    endOption.textContent = timeDisplay;
+                    endTimeSelect.appendChild(endOption);
+                    
+                    const editStartOption = document.createElement('option');
+                    editStartOption.value = timeValue;
+                    editStartOption.textContent = timeDisplay;
+                    editStartTimeSelect.appendChild(editStartOption);
+                    
+                    const editEndOption = document.createElement('option');
+                    editEndOption.value = timeValue;
+                    editEndOption.textContent = timeDisplay;
+                    editEndTimeSelect.appendChild(editEndOption);
+                }
+            }
+            
+            // Add 8:15 PM option for end time
+            const lastEndOption = document.createElement('option');
+            lastEndOption.value = '20:15';
+            lastEndOption.textContent = formatTime('20:15');
+            endTimeSelect.appendChild(lastEndOption);
+            
+            const lastEditEndOption = document.createElement('option');
+            lastEditEndOption.value = '20:15';
+            lastEditEndOption.textContent = formatTime('20:15');
+            editEndTimeSelect.appendChild(lastEditEndOption);
+        }
+
+        // Initialize the time distribution chart
+        function initializeChart() {
+            const ctx = document.getElementById('timeDistributionChart').getContext('2d');
+            window.timeDistributionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Work', 'Meetings', 'Personal', 'Learning'],
+                    datasets: [{
+                        data: [285, 90, 135, 45], // time in minutes
+                        backgroundColor: [
+                            '#4f54e8', // work
+                            '#f59e0b', // meetings
+                            '#ec4899', // personal
+                            '#10b981'  // learning
+                        ],
+                        borderWidth: 0,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            updateTimeDistribution();
+        }
+
+        // Update the time distribution chart and stats
+        function updateTimeDistribution() {
+            // Filter tasks for the current date
+            const currentDateStart = new Date(state.currentDate);
+            currentDateStart.setHours(0, 0, 0, 0);
+            
+            const currentDateEnd = new Date(state.currentDate);
+            currentDateEnd.setHours(23, 59, 59, 999);
+            
+            const tasksToday = state.tasks.filter(task => 
+                task.date >= currentDateStart && task.date <= currentDateEnd
+            );
+            
+            // Calculate time spent on each category
+            const categoryMinutes = {
+                work: 0,
+                meeting: 0,
+                personal: 0,
+                learning: 0
+            };
+            
+            tasksToday.forEach(task => {
+                const startHour = parseInt(task.startTime.split(':')[0]);
+                const startMinute = parseInt(task.startTime.split(':')[1]);
+                const endHour = parseInt(task.endTime.split(':')[0]);
+                const endMinute = parseInt(task.endTime.split(':')[1]);
+                
+                const startTimeInMinutes = startHour * 60 + startMinute;
+                const endTimeInMinutes = endHour * 60 + endMinute;
+                const durationInMinutes = endTimeInMinutes - startTimeInMinutes;
+                
+                categoryMinutes[task.category] += durationInMinutes;
+            });
+            
+            // Update chart data
+            window.timeDistributionChart.data.datasets[0].data = [
+                categoryMinutes.work,
+                categoryMinutes.meeting,
+                categoryMinutes.personal,
+                categoryMinutes.learning
+            ];
+            window.timeDistributionChart.update();
+            
+            // Update stats display
+            const timeDistributionStats = document.getElementById('timeDistributionStats');
+            timeDistributionStats.innerHTML = '';
+            
+            const categories = [
+                { name: 'Work', key: 'work', color: 'bg-work' },
+                { name: 'Meetings', key: 'meeting', color: 'bg-meeting' },
+                { name: 'Personal', key: 'personal', color: 'bg-personal' },
+                { name: 'Learning', key: 'learning', color: 'bg-learning' }
+            ];
+            
+            categories.forEach(category => {
+                const minutes = categoryMinutes[category.key];
+                const hours = Math.floor(minutes / 60);
+                const mins = minutes % 60;
+                
+                const timeDisplay = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                
+                const categoryEl = document.createElement('div');
+                categoryEl.className = 'flex justify-between items-center mb-2';
+                categoryEl.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 rounded-full ${category.color} mr-2"></span>
+                        <span class="text-sm">${category.name}</span>
+                    </div>
+                    <span class="text-sm font-semibold">${timeDisplay}</span>
+                `;
+                
+                timeDistributionStats.appendChild(categoryEl);
+            });
+        }
+
+        // Update completed tasks count
+        function updateCompletedTasksCount() {
+            // Filter tasks for the current date
+            const currentDateStart = new Date(state.currentDate);
+            currentDateStart.setHours(0, 0, 0, 0);
+            
+            const currentDateEnd = new Date(state.currentDate);
+            currentDateEnd.setHours(23, 59, 59, 999);
+            
+            const tasksToday = state.tasks.filter(task => 
+                task.date >= currentDateStart && task.date <= currentDateEnd
+            );
+            
+            const completedTasks = tasksToday.filter(task => task.status === 'completed').length;
+            const totalTasks = tasksToday.length;
+            
+            completedTasksCountEl.textContent = `${completedTasks}/${totalTasks}`;
+        }
+
+        // Set up event listeners
+        function setupEventListeners() {
+            // Add task button
+            addTaskBtn.addEventListener('click', openAddTaskModal);
+            
+            // Save task button
+            saveTaskBtn.addEventListener('click', saveNewTask);
+            
+            // Update task button
+            updateTaskBtn.addEventListener('click', updateTask);
+            
+            // Delete task button
+            deleteTaskBtn.addEventListener('click', deleteTask);
+            
+            // Navigation buttons
+            prevDayBtn.addEventListener('click', goToPreviousDay);
+            nextDayBtn.addEventListener('click', goToNextDay);
+            todayBtn.addEventListener('click', goToToday);
+            
+            // Focus timer button
+            focusStartBtn.addEventListener('click', toggleFocusTimer);
+            
+            // Modal close buttons
+            closeAddTaskModal.addEventListener('click', () => {
+                addTaskModal.classList.add('hidden');
+            });
+            
+            closeEditTaskModal.addEventListener('click', () => {
+                editTaskModal.classList.add('hidden');
+            });
+            
+            cancelAddTask.addEventListener('click', () => {
+                addTaskModal.classList.add('hidden');
+            });
+            
+            cancelEditTask.addEventListener('click', () => {
+                editTaskModal.classList.add('hidden');
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === addTaskModal) {
+                    addTaskModal.classList.add('hidden');
+                }
+                if (e.target === editTaskModal) {
+                    editTaskModal.classList.add('hidden');
+                }
+            });
+            
+            // Quick complete task action
+            document.addEventListener('click', function(e) {
+                const completeBtn = e.target.closest('.complete-task');
+                if (completeBtn) {
+                    e.stopPropagation(); // Prevent opening the edit modal
+                    const taskId = completeBtn.dataset.id;
+                    markTaskAsCompleted(taskId);
+                }
+            });
+        }
+
+        // Open the add task modal
+        function openAddTaskModal() {
+            // Reset form
+            document.getElementById('addTaskForm').reset();
+            
+            // Set default times
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const roundedMinute = Math.ceil(currentMinute / 15) * 15;
+            
+            let startHour = currentHour;
+            let startMinute = roundedMinute;
+            
+            if (startMinute >= 60) {
+                startHour += 1;
+                startMinute = 0;
+            }
+            
+            if (startHour < 8) {
+                startHour = 8;
+                startMinute = 0;
+            } else if (startHour >= 20) {
+                startHour = 19;
+                startMinute = 45;
+            }
+            
+            const startTimeValue = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+            
+            // Calculate end time (30 minutes later)
+            let endHour = startHour;
+            let endMinute = startMinute + 30;
+            
+            if (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+            
+            if (endHour > 20 || (endHour === 20 && endMinute > 0)) {
+                endHour = 20;
+                endMinute = 0;
+            }
+            
+            const endTimeValue = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+            
+            // Set default values
+            document.getElementById('startTime').value = startTimeValue;
+            document.getElementById('endTime').value = endTimeValue;
+            
+            // Show modal
+            addTaskModal.classList.remove('hidden');
+        }
+
+        // Open the add task modal with a specific time
+        function openAddTaskModalAtTime(hour, minute) {
+            // Reset form
+            document.getElementById('addTaskForm').reset();
+            
+            // Format the start time
+            const startHour = hour;
+            const startMinute = minute;
+            const startTimeValue = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+            
+            // Calculate end time (30 minutes later)
+            let endHour = startHour;
+            let endMinute = startMinute + 30;
+            
+            if (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+            
+            if (endHour > 20 || (endHour === 20 && endMinute > 0)) {
+                endHour = 20;
+                endMinute = 0;
+            }
+            
+            const endTimeValue = `${endHour.toString().padStart(2, '0')}:${endMinute.toString().padStart(2, '0')}`;
+            
+            // Set values
+            document.getElementById('startTime').value = startTimeValue;
+            document.getElementById('endTime').value = endTimeValue;
+            
+            // Show modal
+            addTaskModal.classList.remove('hidden');
+        }
+
+        // Save a new task
+        function saveNewTask() {
+            const title = document.getElementById('taskTitle').value.trim();
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            const category = document.getElementById('taskCategory').value;
+            const description = document.getElementById('taskDescription').value.trim();
+            
+            // Validate inputs
+            if (!title || !startTime || !endTime || !category) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Validate time range
+            if (startTime >= endTime) {
+                alert('End time must be after start time.');
+                return;
+            }
+            
+            // Create new task
+            const newTask = {
+                id: Date.now(), // Use timestamp as ID
+                title,
+                startTime,
+                endTime,
+                category,
+                description,
+                date: new Date(state.currentDate),
+                status: 'pending'
+            };
+            
+            // Add to tasks array
+            state.tasks.push(newTask);
+            
+            // Save and render
+            saveTasks();
+            renderTasks();
+            
+            // Close modal
+            addTaskModal.classList.add('hidden');
+        }
+
+        // Convert time string (HH:MM) to minutes
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Convert minutes to time string (HH:MM)
+        function minutesToTime(minutes) {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+        }
+
+        // Open the edit task modal
+        function openEditTaskModal(taskId) {
+            const task = state.tasks.find(t => t.id == taskId);
+            if (!task) return;
+            
+            // Set form values
+            document.getElementById('editTaskId').value = task.id;
+            document.getElementById('editTaskTitle').value = task.title;
+            document.getElementById('editStartTime').value = task.startTime;
+            document.getElementById('editEndTime').value = task.endTime;
+            document.getElementById('editTaskCategory').value = task.category;
+            document.getElementById('editTaskDescription').value = task.description;
+            document.getElementById('editTaskStatus').value = task.status;
+            
+            // Show modal
+            editTaskModal.classList.remove('hidden');
+        }
+
+        // Update an existing task
+        function updateTask() {
+            const taskId = document.getElementById('editTaskId').value;
+            const title = document.getElementById('editTaskTitle').value.trim();
+            const startTime = document.getElementById('editStartTime').value;
+            const endTime = document.getElementById('editEndTime').value;
+            const category = document.getElementById('editTaskCategory').value;
+            const description = document.getElementById('editTaskDescription').value.trim();
+            const status = document.getElementById('editTaskStatus').value;
+            
+            // Validate inputs
+            if (!title || !startTime || !endTime || !category) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Validate time range
+            if (startTime >= endTime) {
+                alert('End time must be after start time.');
+                return;
+            }
+            
+            // Find task index
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+            
+            // Update task
+            state.tasks[taskIndex] = {
+                ...state.tasks[taskIndex],
+                title,
+                startTime,
+                endTime,
+                category,
+                description,
+                status
+            };
+            
+            // Save and render
+            saveTasks();
+            renderTasks();
+            
+            // Close modal
+            editTaskModal.classList.add('hidden');
+        }
+
+        // Mark a task as completed
+        function markTaskAsCompleted(taskId) {
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+            
+            // Toggle completion status
+            if (state.tasks[taskIndex].status === 'completed') {
+                state.tasks[taskIndex].status = 'pending';
+            } else {
+                state.tasks[taskIndex].status = 'completed';
+            }
+            
+            saveTasks();
+            renderTasks();
+        }
+
+        // Delete a task
+        function deleteTask() {
+            const taskId = document.getElementById('editTaskId').value;
+            
+            // Confirm deletion
+            if (!confirm('Are you sure you want to delete this task?')) {
+                return;
+            }
+            
+            // Remove task
+            state.tasks = state.tasks.filter(t => t.id != taskId);
+            
+            // Save and render
+            saveTasks();
+            renderTasks();
+            
+            // Close modal
+            editTaskModal.classList.add('hidden');
+        }
+
+        // Navigate to previous day
+        function goToPreviousDay() {
+            state.currentDate.setDate(state.currentDate.getDate() - 1);
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+        }
+
+        // Navigate to next day
+        function goToNextDay() {
+            state.currentDate.setDate(state.currentDate.getDate() + 1);
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+        }
+
+        // Navigate to today
+        function goToToday() {
+            state.currentDate = new Date();
+            updateDateDisplay();
+            renderTasks();
+            updateTimeDistribution();
+        }
+
+        // Toggle focus timer
+        function toggleFocusTimer() {
+            if (state.focusTimerRunning) {
+                // Stop timer
+                clearInterval(state.focusInterval);
+                state.focusTimerRunning = false;
+                focusStartBtn.textContent = 'Start';
+                focusStartBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                focusStartBtn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+                state.focusTimeRemaining = 25 * 60; // Reset to 25 minutes
+                updateFocusTimerDisplay();
+            } else {
+                // Start timer
+                state.focusTimerRunning = true;
+                focusStartBtn.textContent = 'Pause';
+                focusStartBtn.classList.remove('bg-primary-600', 'hover:bg-primary-700');
+                focusStartBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+                
+                state.focusInterval = setInterval(() => {
+                    state.focusTimeRemaining--;
+                    
+                    if (state.focusTimeRemaining <= 0) {
+                        // Timer finished
+                        clearInterval(state.focusInterval);
+                        state.focusTimerRunning = false;
+                        focusStartBtn.textContent = 'Start';
+                        focusStartBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                        focusStartBtn.classList.add('bg-primary-600', 'hover:bg-primary-700');
+                        state.focusTimeRemaining = 25 * 60; // Reset to 25 minutes
+                        
+                        // Play sound and show notification
+                        playTimerEndSound();
+                        showNotification('Focus session completed!', 'Time for a break.');
+                    }
+                    
+                    updateFocusTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        // Update focus timer display
+        function updateFocusTimerDisplay() {
+            const minutes = Math.floor(state.focusTimeRemaining / 60);
+            const seconds = state.focusTimeRemaining % 60;
+            focusTimerEl.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // Play timer end sound
+        function playTimerEndSound() {
+            const audio = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3');
+            audio.play();
+        }
+
+        // Show notification
+        function showNotification(title, body) {
+            if ('Notification' in window) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, { body });
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, { body });
+                        }
+                    });
+                }
+            }
+        }
+
+        // Drag and drop handlers
+        function handleDragStart(e) {
+            this.classList.add('dragging');
+            state.draggedTask = this.dataset.id;
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', this.dataset.id);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            this.classList.add('drag-over');
+            e.dataTransfer.dropEffect = 'move';
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            const taskId = state.draggedTask;
+            if (!taskId) return;
+            
+            const taskIndex = state.tasks.findIndex(t => t.id == taskId);
+            if (taskIndex === -1) return;
+            
+            // Calculate new start time based on drop position
+            const timeBlock = this;
+            const hour = parseInt(timeBlock.dataset.hour);
+            const blockRect = timeBlock.getBoundingClientRect();
+            const dropY = e.clientY - blockRect.top;
+            
+            // Calculate minutes based on position within the hour block
+            const minute = Math.floor(dropY / 15) * 15;
+            
+            // Calculate new start and end times
+            const task = state.tasks[taskIndex];
+            const oldStartMinutes = timeToMinutes(task.startTime);
+            const oldEndMinutes = timeToMinutes(task.endTime);
+            const duration = oldEndMinutes - oldStartMinutes;
+            
+            const newStartMinutes = hour * 60 + minute;
+            let newEndMinutes = newStartMinutes + duration;
+            
+            // Ensure end time doesn't exceed 8:15 PM
+            if (newEndMinutes > 20 * 60 + 15) {
+                newEndMinutes = 20 * 60 + 15;
+            }
+            
+            // Update task times
+            task.startTime = minutesToTime(newStartMinutes);
+            task.endTime = minutesToTime(newEndMinutes);
+            
+            // Save and render
+            saveTasks();
+            renderTasks();
+            
+            state.draggedTask = null;
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
