@@ -1,0 +1,2818 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TimeFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Outfit', 'sans-serif'],
+                        display: ['Space Grotesk', 'sans-serif'],
+                    },
+                    colors: {
+                        flow: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        energy: {
+                            50: '#fdf4ff',
+                            100: '#fae8ff',
+                            200: '#f5d0fe',
+                            300: '#f0abfc',
+                            400: '#e879f9',
+                            500: '#d946ef',
+                            600: '#c026d3',
+                            700: '#a21caf',
+                            800: '#86198f',
+                            900: '#701a75',
+                        },
+                        nature: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        },
+                        warmth: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            200: '#fed7aa',
+                            300: '#fdba74',
+                            400: '#fb923c',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                            800: '#9a3412',
+                            900: '#7c2d12',
+                        },
+                        focus: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    },
+                    animation: {
+                        'float': 'float 6s ease-in-out infinite',
+                        'flow': 'flow 15s ease-in-out infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        },
+                        flow: {
+                            '0%, 100%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                        }
+                    },
+                    backdropBlur: {
+                        xs: '2px',
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/css">
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .dark ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.1);
+        }
+
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 10px;
+        }
+
+        .dark ::-webkit-scrollbar-thumb:hover {
+            background: rgba(100, 116, 139, 0.7);
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(241, 245, 249, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.5);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.7);
+        }
+
+        /* Flow background */
+        .flow-bg {
+            background: linear-gradient(-45deg, #0ea5e9, #d946ef, #22c55e, #f97316);
+            background-size: 400% 400%;
+            animation: flow 15s ease infinite;
+        }
+
+        @keyframes flow {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        /* Glass effect */
+        .glass {
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+        }
+
+        /* Task animations */
+        .task {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .task:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Current time indicator */
+        .current-time-indicator {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #f97316, #f97316, transparent);
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .current-time-indicator::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #f97316;
+            transform: translateX(-50%);
+            box-shadow: 0 0 8px #f97316;
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        /* Prayer time indicator */
+        .prayer-time-indicator {
+            position: absolute;
+            height: 100%;
+            border-left: 2px dashed rgba(249, 115, 22, 0.5);
+            z-index: 20;
+            pointer-events: none;
+        }
+
+        .prayer-time-indicator::before {
+            content: attr(data-prayer);
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: translateX(-50%) translateY(-100%);
+            background-color: rgba(249, 115, 22, 0.9);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* Task completion animation */
+        @keyframes taskComplete {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .task-complete-animation {
+            animation: taskComplete 0.5s ease-out;
+        }
+
+        /* Timeline scroll */
+        .timeline-container {
+            scroll-behavior: smooth;
+        }
+
+        /* Category pill animation */
+        .category-pill {
+            transition: all 0.2s ease;
+        }
+
+        .category-pill:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Draggable task styles */
+        .task.dragging {
+            opacity: 0.8;
+            transform: scale(1.05);
+            z-index: 100;
+        }
+
+        .task-dropzone {
+            border: 2px dashed rgba(14, 165, 233, 0.5);
+            background-color: rgba(14, 165, 233, 0.1);
+            border-radius: 0.5rem;
+            min-height: 40px;
+            transition: all 0.2s ease;
+        }
+
+        .task-dropzone.active {
+            background-color: rgba(14, 165, 233, 0.2);
+            border-color: rgba(14, 165, 233, 0.8);
+        }
+
+        /* Notification animation */
+        @keyframes notification {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            50% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .notification-animation {
+            animation: notification 0.5s forwards;
+        }
+
+        /* Task content */
+        .task-content {
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+    </style>
+</head>
+
+<body
+    class="font-sans antialiased transition-colors duration-300 ease-in-out dark:bg-slate-900 bg-slate-50 h-screen flex flex-col">
+    <!-- Flow background -->
+    <div class="fixed inset-0 -z-10 flow-bg opacity-10 dark:opacity-15"></div>
+
+    <!-- Main layout -->
+    <div class="flex h-full">
+        <!-- Sidebar -->
+        <aside
+            class="w-64 h-full flex-shrink-0 border-r border-slate-200 dark:border-slate-800 glass bg-white/70 dark:bg-slate-900/70 z-10 flex flex-col">
+            <!-- Logo -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800">
+                <h1
+                    class="text-2xl font-display font-bold bg-gradient-to-r from-flow-600 to-energy-600 dark:from-flow-400 dark:to-energy-400 text-transparent bg-clip-text">
+                    TimeFlow</h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Flow through your day</p>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="p-4 space-y-2 flex-grow overflow-y-auto">
+                <a href="#"
+                    class="flex items-center space-x-3 p-3 rounded-xl bg-flow-50 dark:bg-flow-900/30 text-flow-700 dark:text-flow-300 font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path
+                            d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#"
+                    class="flex items-center space-x-3 p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span>Calendar</span>
+                </a>
+                <a href=" #"
+                    class="flex items-center space-x-3 p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fill-rule="evenodd"
+                            d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span>Tasks</span>
+                </a>
+                <a href="#"
+                    class="flex items-center space-x-3 p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M5 3a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V5a2 2 0 00-2-2H5zm0 2h10v7h-2l-1 2H8l-1-2H5V5z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span>Backlog</span>
+                </a>
+                <a href="#"
+                    class="flex items-center space-x-3 p-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z"
+                            clip-rule="evenodd" />
+                    </svg>
+                    <span>Insights</span>
+                </a>
+            </nav>
+
+            <!-- Categories -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Categories</h3>
+                <div class="space-y-2" id="sidebar-categories">
+                    <!-- Categories will be inserted here -->
+                </div>
+            </div>
+
+            <!-- User & Settings -->
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
+                <div class="flex items-center justify-between">
+                    <button id="theme-toggle"
+                        class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-warmth-500 dark:hover:text-warmth-400 transition-colors">
+                        <!-- Sun icon (dark mode) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <!-- Moon icon (light mode) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 dark:hidden" viewBox="0 0 20 20"
+                            fill="currentColor">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
+                        </svg>
+                    </button>
+
+                    <button id="focus-mode-toggle"
+                        class="p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-focus-500 dark:hover:text-focus-400 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z" />
+                        </svg>
+                    </button>
+
+                    <div class="flex items-center space-x-2">
+                        <div
+                            class="w-8 h-8 rounded-full bg-gradient-to-r from-flow-500 to-energy-500 flex items-center justify-center text-white font-medium">
+                            A
+                        </div>
+                        <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Alex</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden">
+            <!-- Header -->
+            <header
+                class="p-4 border-b border-slate-200 dark:border-slate-800 glass bg-white/70 dark:bg-slate-900/70 z-10 flex items-center justify-between">
+                <!-- Date navigation -->
+                <div class="flex items-center space-x-4">
+                    <div
+                        class="flex items-center space-x-2 bg-white dark:bg-slate-800 rounded-full px-4 py-2 shadow-sm">
+                        <button id="prev-day"
+                            class="text-slate-400 hover:text-flow-500 dark:hover:text-flow-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                        <h2 id="current-date" class="text-base font-medium text-slate-700 dark:text-slate-300">Sunday,
+                            March 30, 2025</h2>
+                        <button id="next-day"
+                            class="text-slate-400 hover:text-flow-500 dark:hover:text-flow-400 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="hidden md:flex items-center space-x-2">
+                        <button
+                            class="px-3 py-1 rounded-full text-xs font-medium bg-flow-100 dark:bg-flow-900/30 text-flow-700 dark:text-flow-300 hover:bg-flow-200 dark:hover:bg-flow-800/50 transition-colors">Today</button>
+                        <button
+                            class="px-3 py-1 rounded-full text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">Week</button>
+                        <button
+                            class="px-3 py-1 rounded-full text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 transition-colors">Month</button>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex items-center space-x-3">
+                    <!-- Prayer times -->
+                    <div
+                        class="hidden md:flex items-center p-2 rounded-xl bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm">
+                        <div class="prayer-icon mr-2 text-warmth-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20"
+                                fill="currentColor">
+                                <path fill-rule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                                    clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="text-xs font-medium text-slate-700 dark:text-slate-300">Next: Asar</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">16:15</div>
+                        </div>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="relative hidden md:block">
+                        <input type="text" placeholder="Search tasks..."
+                            class="w-48 px-3 py-1.5 pl-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-2.5 top-2 text-slate-400"
+                            viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+
+                    <!-- Add task button -->
+                    <button id="add-task-btn"
+                        class="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-flow-500 to-energy-600 hover:from-flow-600 hover:to-energy-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd"
+                                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                                clip-rule="evenodd" />
+                        </svg>
+                        <span class="hidden md:inline">Add Task</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content area -->
+            <div class="flex-1 flex overflow-hidden">
+                <!-- Timeline view -->
+                <div class="flex-1 flex flex-col overflow-hidden">
+                    <!-- Time scale -->
+                    <div class="flex border-b border-slate-200 dark:border-slate-800 h-12 flex-shrink-0">
+                        <div
+                            class="w-16 border-r border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                            <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Time</span>
+                        </div>
+                        <div class="flex-1 flex" id="time-scale">
+                            <!-- Time scale will be generated by JS -->
+                        </div>
+                    </div>
+                    <!-- Timeline container -->
+                    <div class="flex-1 flex overflow-hidden">
+                        <!-- Time labels -->
+                        <div class="w-16 border-r border-slate-200 dark:border-slate-800 flex-shrink-0 overflow-y-auto"
+                            id="time-labels-container">
+                            <div id="time-labels" class="relative">
+                                <!-- Time labels will be generated by JS -->
+                            </div>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="flex-1 overflow-x-hidden overflow-y-auto timeline-container relative"
+                            id="timeline-container">
+                            <!-- Current time indicator -->
+                            <div id="current-time-indicator" class="current-time-indicator hidden"></div>
+
+                            <!-- Prayer time indicators -->
+                            <div id="prayer-time-indicators">
+                                <!-- Prayer time indicators will be generated by JS -->
+                            </div>
+
+                            <!-- Time grid -->
+                            <div id="time-grid" class="relative">
+                                <!-- Time rows will be generated by JS -->
+                            </div>
+
+                            <!-- Tasks container -->
+                            <div id="tasks-container"
+                                class="absolute top-0 left-0 right-0 bottom-0 pointer-events-none">
+                                <!-- Tasks will be inserted here -->
+                            </div>
+
+                            <!-- Loading spinner -->
+                            <div id="loading-spinner"
+                                class="absolute inset-0 flex items-center justify-center z-30 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm hidden">
+                                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-flow-500"></div>
+                            </div>
+
+                            <!-- Empty state -->
+                            <div id="empty-state"
+                                class="absolute inset-0 flex flex-col items-center justify-center z-20 hidden">
+                                <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/tailwindcss/tailwindcss-original.svg"
+                                    class="w-24 h-24 mb-4 opacity-20" />
+                                <h3 class="text-xl font-medium text-slate-400 dark:text-slate-500 mb-2">No tasks
+                                    scheduled</h3>
+                                <p class="text-slate-400 dark:text-slate-500 mb-4 text-center max-w-md">Your schedule is
+                                    clear for today. Add a task to get started or drag items from your backlog.</p>
+                                <button id="empty-add-btn"
+                                    class="px-4 py-2 bg-gradient-to-r from-flow-500 to-energy-600 hover:from-flow-600 hover:to-energy-700 text-white rounded-full shadow-md hover:shadow-lg transition-all">
+                                    Add Your First Task
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right panel -->
+                <div
+                    class="w-80 border-l border-slate-200 dark:border-slate-800 glass bg-white/70 dark:bg-slate-900/70 flex-shrink-0 flex flex-col overflow-hidden">
+                    <!-- Tabs -->
+                    <div class="flex border-b border-slate-200 dark:border-slate-800">
+                        <button
+                            class="flex-1 py-3 text-sm font-medium text-flow-600 dark:text-flow-400 border-b-2 border-flow-500 dark:border-flow-400">Insights</button>
+                        <button
+                            class="flex-1 py-3 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">Backlog</button>
+                    </div>
+
+                    <!-- Insights content -->
+                    <div class="flex-1 overflow-y-auto p-4">
+                        <!-- Progress summary -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Today's Progress
+                            </h3>
+                            <div class="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Task
+                                        Completion</span>
+                                    <span class="text-sm font-medium text-flow-600 dark:text-flow-400"
+                                        id="completion-percentage">62.5%</span>
+                                </div>
+                                <div
+                                    class="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
+                                    <div class="h-full bg-gradient-to-r from-flow-500 to-energy-500 rounded-full"
+                                        id="completion-progress" style="width: 62.5%"></div>
+                                </div>
+                                <div
+                                    class="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+                                    <span id="completed-count">5/8 tasks completed</span>
+                                    <span id="remaining-time">3h 15m remaining</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Category breakdown -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Category Breakdown
+                            </h3>
+                            <div class="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
+                                <div class="h-48 mb-2" id="category-chart-container">
+                                    <canvas id="category-chart"></canvas>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2" id="category-legend">
+                                    <!-- Category legend will be generated by JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming tasks -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Coming Up Next</h3>
+                            <div id="upcoming-tasks" class="space-y-2">
+                                <!-- Upcoming tasks will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Focus time -->
+                        <div class="mb-6">
+                            <h3 class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3">Focus Time</h3>
+                            <div class="bg-white dark:bg-slate-800 rounded-lg p-4 shadow-sm">
+                                <div class="flex items-center justify-between mb-3">
+                                    <span class="text-2xl font-semibold text-slate-800 dark:text-slate-200"
+                                        id="focus-time">3h 45m</span>
+                                    <span
+                                        class="text-xs px-2 py-1 rounded-full bg-nature-100 dark:bg-nature-900/30 text-nature-800 dark:text-nature-400">+15%
+                                        from yesterday</span>
+                                </div>
+                                <div class="h-24" id="focus-chart-container">
+                                    <canvas id="focus-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="task-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform translate-y-8 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 id="modal-title" class="text-xl font-semibold text-slate-800 dark:text-slate-200">Add New Task
+                    </h3>
+                    <button id="close-modal"
+                        class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="task-form" class="space-y-4">
+                    <input type="hidden" id="task-id">
+
+                    <div>
+                        <label for="task-name"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Name</label>
+                        <input type="text" id="task-name"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                            placeholder="Enter task name" required>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+                        <input type="hidden" id="task-category" name="task-category" required>
+                        <div id="task-category-container" class="flex flex-wrap gap-2 mb-2">
+                            <!-- Category buttons will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="task-start-time"
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start
+                                Time</label>
+                            <input type="time" id="task-start-time"
+                                class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                                required>
+                        </div>
+
+                        <div>
+                            <label for="task-end-time"
+                                class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End
+                                Time</label>
+                            <input type="time" id="task-end-time"
+                                class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                                required>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="task-description"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                        <textarea id="task-description" rows="3"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                            placeholder="Enter task description"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="task-completed"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Status</label>
+                        <select id="task-completed"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all">
+                            <option value="false">Not Completed</option>
+                            <option value="true">Completed</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="delete-task-btn"
+                            class="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors hidden">Delete</button>
+                        <button type="button" id="cancel-edit-btn"
+                            class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-gradient-to-r from-flow-500 to-energy-600 hover:from-flow-600 hover:to-energy-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Backlog Modal -->
+    <div id="backlog-modal"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300">
+        <div
+            class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md mx-4 transform translate-y-8 transition-transform duration-300">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 id="backlog-modal-title" class="text-xl font-semibold text-slate-800 dark:text-slate-200">Add to
+                        Backlog</h3>
+                    <button id="close-backlog-modal"
+                        class="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <form id="backlog-form" class="space-y-4">
+                    <input type="hidden" id="backlog-id">
+
+                    <div>
+                        <label for=" backlog-title"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Task Name</label>
+                        <input type="text" id="backlog-title"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                            placeholder="Enter task name" required>
+                    </div>
+
+                    <div>
+                        <label
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
+                        <input type="hidden" id="backlog-category" name="backlog-category" required>
+                        <div id="backlog-category-container" class="flex flex-wrap gap-2 mb-2">
+                            <!-- Category buttons will be inserted here -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="backlog-description"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description
+                            (Optional)</label>
+                        <textarea id="backlog-description" rows="2"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all"
+                            placeholder="Enter brief description"></textarea>
+                    </div>
+
+                    <div>
+                        <label for="backlog-priority"
+                            class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Priority</label>
+                        <select id="backlog-priority"
+                            class="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-flow-500 dark:focus:ring-flow-400 focus:border-transparent transition-all">
+                            <option value="low">Low</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" id="cancel-backlog-btn"
+                            class="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Cancel</button>
+                        <button type="submit"
+                            class="px-4 py-2 bg-gradient-to-r from-flow-500 to-energy-600 hover:from-flow-600 hover:to-energy-700 text-white rounded-lg shadow-md hover:shadow-lg transition-all">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast"
+        class="fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none max-w-xs">
+    </div>
+
+    <!-- Task Alert Notification -->
+    <div id="task-alert"
+        class="fixed top-4 right-4 z-50 p-4 rounded-lg shadow-xl transform scale-0 opacity-0 transition-all duration-300 pointer-events-none max-w-sm bg-white dark:bg-slate-800 border-l-4 border-warmth-500">
+        <div class="flex">
+            <div class="flex-shrink-0 mr-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-warmth-500" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div>
+                <h4 class="text-sm font-medium text-slate-800 dark:text-slate-200 mb-1" id="alert-title">Upcoming Task
+                </h4>
+                <p class="text-xs text-slate-600 dark:text-slate-400 mb-2" id="alert-message">Your task "Team Meeting"
+                    starts in 5 minutes</p>
+                <div class="flex space-x-2">
+                    <button id="alert-dismiss"
+                        class="text-xs px-2 py-1 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Dismiss</button>
+                    <button id="alert-snooze"
+                        class="text-xs px-2 py-1 rounded bg-flow-100 dark:bg-flow-900/30 text-flow-700 dark:text-flow-300 hover:bg-flow-200 dark:hover:bg-flow-800/50 transition-colors">Snooze
+                        5m</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+            // Initialize the schedule
+            initializeSchedule();
+
+            // Fetch categories first, then fetch tasks
+            fetchCategories().then(() => {
+                // Fetch tasks for the current date
+                fetchTasks(formatDateForAPI(currentDisplayDate));
+            });
+
+            // Set up current time indicator
+            updateCurrentTimeIndicator();
+            setInterval(updateCurrentTimeIndicator, 60000); // Update every minute
+
+            // Set up prayer times
+            setupPrayerTimes();
+
+            // Set up date navigation
+            $("#prev-day").on("click", navigateToPreviousDay);
+            $("#next-day").on("click", navigateToNextDay);
+
+            // Set up modal close
+            $("#close-modal, #cancel-edit-btn").on("click", function () {
+                closeTaskModal();
+            });
+
+            // Add task button
+            $("#add-task-btn, #empty-add-btn").on("click", function () {
+                openNewTaskModal();
+            });
+
+            // Form submission
+            $("#task-form").on("submit", function (e) {
+                e.preventDefault();
+                saveTaskChanges();
+            });
+
+            // Delete task button
+            $("#delete-task-btn").on("click", function () {
+                deleteTask();
+            });
+
+            // Backlog form
+            $("#backlog-form").on("submit", function (e) {
+                e.preventDefault();
+                saveBacklogItem();
+            });
+
+            // Close backlog modal
+            $("#close-backlog-modal, #cancel-backlog-btn").on("click", function () {
+                closeBacklogModal();
+            });
+
+            // Theme toggle
+            $("#theme-toggle").on("click", function () {
+                $("html").toggleClass("dark");
+
+                // Save preference to localStorage
+                const isDarkMode = $("html").hasClass("dark");
+                localStorage.setItem("darkMode", isDarkMode);
+
+                // Show toast
+                showToast(isDarkMode ? "Dark mode enabled" : "Light mode enabled", "info");
+
+                // Update charts with new theme
+                updateCharts();
+            });
+
+            // Focus mode toggle
+            $("#focus-mode-toggle").on("click", toggleFocusMode);
+
+            // Task alert dismiss
+            $("#alert-dismiss").on("click", dismissTaskAlert);
+
+            // Task alert snooze
+            $("#alert-snooze").on("click", snoozeTaskAlert);
+
+            // Check for saved theme preference
+            const savedDarkMode = localStorage.getItem("darkMode");
+            if (savedDarkMode === "true") {
+                $("html").addClass("dark");
+            } else if (savedDarkMode === "false") {
+                $("html").removeClass("dark");
+            } else {
+                // If no preference, use system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    $("html").addClass("dark");
+                }
+            }
+
+            // Initialize charts
+            initializeCharts();
+
+            // Set up task notifications
+            setupTaskNotifications();
+        });
+
+        // Current date for navigation
+        let currentDisplayDate = new Date();
+
+        // Store all tasks
+        let allTasks = [];
+
+        // Store categories
+        let categories = [];
+
+        // Store category colors map
+        let categoryColorMap = {};
+
+        // Store backlog items
+        let backlogItems = [];
+
+        // Focus mode state
+        let focusModeActive = false;
+
+        // Charts
+        let categoryChart = null;
+        let focusChart = null;
+
+        // Prayer times
+        const prayerTimes = {
+            Subuh: "05:30",
+            Zohor: "13:15",
+            Asar: "16:15",
+            Maghrib: "19:20",
+            Isya: "20:30"
+        };
+
+        // Audio for notifications
+        const notificationSound = new Audio('../static/audio/notification.mp3');
+
+        // Initialize the schedule timeline
+        function initializeSchedule() {
+            const $timeScale = $("#time-scale");
+            const $timeLabels = $("#time-labels");
+            const $timeGrid = $("#time-grid");
+
+            // Clear existing content
+            $timeScale.empty();
+            $timeLabels.empty();
+            $timeGrid.empty();
+
+            // Create time scale (horizontal hours)
+            for (let hour = 0; hour < 24; hour++) {
+                const $hourLabel = $(`
+                    <div class="flex-1 text-center border-r border-slate-200 dark:border-slate-800 last:border-r-0">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">${formatHour(hour)}</span>
+                    </div>
+                `);
+                $timeScale.append($hourLabel);
+            }
+
+            // Create time rows (vertical hours)
+            for (let hour = 0; hour < 24; hour++) {
+                // Create time label
+                const $timeLabel = $(`
+                    <div class="h-20 flex justify-center items-start pt-2 border-b border-slate-200 dark:border-slate-800">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">${formatHour(hour)}</span>
+                    </div>
+                `);
+                $timeLabels.append($timeLabel);
+
+                // Create time row
+                const $timeRow = $(`
+                    <div class="h-20 border-b border-slate-200 dark:border-slate-800 relative" data-hour="${hour}">
+                        <!-- 15-minute intervals -->
+                        <div class="absolute inset-0 grid grid-cols-4">
+                            <div class="border-r border-slate-200/50 dark:border-slate-800/50 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors" data-minute="0"></div>
+                            <div class="border-r border-slate-200/50 dark:border-slate-800/50 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors" data-minute="15"></div>
+                            <div class="border-r border-slate-200/50 dark:border-slate-800/50 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors" data-minute="30"></div>
+                            <div class="cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-800/30 transition-colors" data-minute="45"></div>
+                        </div>
+                    </div>
+                `);
+
+                // Add click handler to open add task modal with the clicked time
+                $timeRow.find("div[data-minute]").on('click', function () {
+                    const clickedHour = $timeRow.data('hour');
+                    const clickedMinute = $(this).data('minute');
+                    openNewTaskModalWithTime(clickedHour, clickedMinute);
+                });
+
+                $timeGrid.append($timeRow);
+            }
+
+            // Make tasks container the same height as the time grid
+            $("#tasks-container").css("height", $timeGrid.height());
+        }
+
+        // Format hour for display (12-hour format with am/pm)
+        function formatHour(hour) {
+            if (hour === 0) return "12am";
+            if (hour === 12) return "12pm";
+            return hour < 12 ? `${hour}am` : `${hour - 12}pm`;
+        }
+
+        // Format time for display (12-hour format)
+        function formatTime(timeString) {
+            const [hours, minutes] = timeString.split(":").map(Number);
+            const period = hours >= 12 ? "PM" : "AM";
+            const displayHours = hours % 12 || 12;
+            return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+        }
+
+        // Update the current time indicator position
+        function updateCurrentTimeIndicator() {
+            const now = new Date();
+            const today = now.toISOString().split("T")[0]; // Format: YYYY-MM-DD
+            const displayedDate = formatDateForAPI(currentDisplayDate);
+
+            // Only show indicator if viewing today's schedule
+            if (today === displayedDate) {
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+
+                // Calculate position from left (in percentage)
+                const dayPercentage = (currentHour * 60 + currentMinute) / (24 * 60) * 100;
+
+                // Calculate position from top
+                const hourHeight = 80; // 80px per hour
+                const minuteHeight = hourHeight / 60; // height per minute
+                const topPosition = (currentHour * hourHeight) + (currentMinute * minuteHeight);
+
+                const $indicator = $("#current-time-indicator");
+                $indicator.removeClass("hidden").css({
+                    top: `${topPosition}px`,
+                    left: "0",
+                    right: "0"
+                });
+
+                // Scroll to current time if it's not visible
+                const $timelineContainer = $("#timeline-container");
+                const containerHeight = $timelineContainer.height();
+                const scrollPosition = $timelineContainer.scrollTop();
+
+                // If current time is not in view, scroll to it
+                if (topPosition < scrollPosition || topPosition > scrollPosition + containerHeight - 100) {
+                    $timelineContainer.animate({
+                        scrollTop: Math.max(0, topPosition - containerHeight / 2)
+                    }, 500);
+                }
+            } else {
+                // Hide indicator if not viewing today
+                $("#current-time-indicator").addClass("hidden");
+            }
+        }
+
+        // Setup prayer time indicators
+        function setupPrayerTimes() {
+            const $prayerIndicators = $("#prayer-time-indicators");
+            $prayerIndicators.empty();
+
+            Object.entries(prayerTimes).forEach(([prayer, time]) => {
+                const [hours, minutes] = time.split(":").map(Number);
+
+                // Calculate position from top
+                const hourHeight = 80; // 80px per hour
+                const minuteHeight = hourHeight / 60; // height per minute
+                const topPosition = (hours * hourHeight) + (minutes * minuteHeight);
+
+                const $indicator = $(`
+                    <div class="prayer-time-indicator" data-prayer="${prayer}" style="top: ${topPosition}px; left: 0; right: 0;"></div>
+                `);
+
+                $prayerIndicators.append($indicator);
+            });
+        }
+
+        // Fetch categories from the API
+        async function fetchCategories() {
+            $("#loading-spinner").show();
+
+            try {
+                const response = await $.ajax({
+                    url: "http://127.0.0.1:5000/api/get_category/admin@gmail.com",
+                    type: "GET",
+                    dataType: "json",
+                    headers: {
+                        Accept: "application/json",
+                    },
+                });
+
+                if (response.status === "success") {
+                    categories = response.categories;
+
+                    // Create a map of category names to colors
+                    categories.forEach((category) => {
+                        categoryColorMap[category.name] = category.color;
+                    });
+
+                    // Update category dropdowns
+                    updateCategoryDropdown();
+                    updateBacklogCategoryDropdown();
+
+                    // Update sidebar categories
+                    updateSidebarCategories();
+
+                    return true;
+                } else {
+                    throw new Error("Failed to fetch categories");
+                }
+            } catch (error) {
+                console.error("Error fetching categories:", error);
+                // Use default categories if API fails
+                useDefaultCategories();
+                return false;
+            } finally {
+                $("#loading-spinner").hide();
+            }
+        }
+
+        // Use default categories if API fails
+        function useDefaultCategories() {
+            categories = [
+                { name: "Work", color: "#3B82F6" }, // blue-500
+                { name: "Personal", color: "#10B981" }, // emerald-500
+                { name: "Learning", color: "#8B5CF6" }, // violet-500
+                { name: "Health", color: "#EF4444" }, // red-500
+                { name: "Social", color: "#F59E0B" }, // amber-500
+            ];
+
+            // Create a map of category names to colors
+            categories.forEach((category) => {
+                categoryColorMap[category.name] = category.color;
+            });
+
+            // Update category dropdowns
+            updateCategoryDropdown();
+            updateBacklogCategoryDropdown();
+
+            // Update sidebar categories
+            updateSidebarCategories();
+        }
+
+        // Update category dropdown in the task form
+        function updateCategoryDropdown() {
+            const $categoryContainer = $("#task-category-container");
+            $categoryContainer.empty();
+
+            categories.forEach((category) => {
+                const $button = $(`
+                    <button type="button"
+                        class="category-pill px-3 py-2 rounded-full border-2 border-transparent flex items-center space-x-2 transition-all"
+                        data-category="${category.name}"
+                        style="background-color: ${hexToRgba(category.color, 0.1)}; color: ${category.color};">
+                        <div class="w-3 h-3 rounded-full" style="background-color: ${category.color};"></div>
+                        <span class="text-sm font-medium">${category.name}</span>
+                    </button>
+                `);
+
+                $categoryContainer.append($button);
+            });
+
+            // Add click handler for category buttons
+            $(".category-pill", "#task-category-container").on("click", function () {
+                // Remove active class from all buttons
+                $(".category-pill", "#task-category-container").removeClass("active border-current").addClass("border-transparent");
+
+                // Add active class to clicked button
+                $(this).addClass("active border-current").removeClass("border-transparent");
+
+                // Update hidden input with selected category
+                $("#task-category").val($(this).data("category"));
+            });
+
+            // Set default category (first one)
+            if (categories.length > 0) {
+                const defaultCategory = categories[0].name;
+                $("#task-category").val(defaultCategory);
+                $(`.category-pill[data-category="${defaultCategory}"]`, "#task-category-container").addClass("active border-current").removeClass("border-transparent");
+            }
+        }
+
+        // Update category dropdown in the backlog form
+        function updateBacklogCategoryDropdown() {
+            const $categoryContainer = $("#backlog-category-container");
+            $categoryContainer.empty();
+
+            categories.forEach((category) => {
+                const $button = $(`
+                    <button type="button"
+                        class="category-pill px-3 py-2 rounded-full border-2 border-transparent flex items-center space-x-2 transition-all"
+                        data-category="${category.name}"
+                        style="background-color: ${hexToRgba(category.color, 0.1)}; color: ${category.color};">
+                        <div class="w-3 h-3 rounded-full" style="background-color: ${category.color};"></div>
+                        <span class="text-sm font-medium">${category.name}</span>
+                    </button>
+                `);
+
+                $categoryContainer.append($button);
+            });
+
+            // Add click handler for category buttons
+            $(".category-pill", "#backlog-category-container").on("click", function () {
+                // Remove active class from all buttons
+                $(".category-pill", "#backlog-category-container").removeClass("active border-current").addClass("border-transparent");
+
+                // Add active class to clicked button
+                $(this).addClass("active border-current").removeClass("border-transparent");
+
+                // Update hidden input with selected category
+                $("#backlog-category").val($(this).data("category"));
+            });
+
+            // Set default category (first one)
+            if (categories.length > 0) {
+                const defaultCategory = categories[0].name;
+                $("#backlog-category").val(defaultCategory);
+                $(`.category-pill[data-category="${defaultCategory}"]`, "#backlog-category-container").addClass("active border-current").removeClass("border-transparent");
+            }
+        }
+
+        // Update sidebar categories
+        function updateSidebarCategories() {
+            const $sidebarCategories = $("#sidebar-categories");
+            $sidebarCategories.empty();
+
+            categories.forEach((category) => {
+                const $categoryItem = $(`
+                    <div class="flex items-center justify-between p-2 rounded-lg transition-all hover:bg-slate-100 dark:hover:bg-slate-800/50 cursor-pointer">
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${category.color};"></div>
+                            <span class="text-sm text-slate-700 dark:text-slate-300">${category.name}</span>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400 category-count">0</span>
+                    </div>
+                `);
+
+                // Add click handler to filter tasks by category
+                $categoryItem.on('click', function () {
+                    filterTasksByCategory(category.name);
+                });
+
+                $sidebarCategories.append($categoryItem);
+            });
+        }
+
+        // Filter tasks by category
+        function filterTasksByCategory(categoryName) {
+            // Highlight the selected category in sidebar
+            $("#sidebar-categories > div").removeClass("bg-slate-100 dark:bg-slate-800/50");
+            $(`#sidebar-categories > div:contains('${categoryName}')`).addClass("bg-slate-100 dark:bg-slate-800/50");
+
+            // Show all tasks if "All" is selected
+            if (categoryName === "All") {
+                $(".task").show();
+                showToast(`Showing all tasks`, "info");
+                return;
+            }
+
+            // Hide tasks that don't match the selected category
+            $(".task").each(function () {
+                const taskCategory = $(this).data("category");
+                if (taskCategory === categoryName) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+
+            showToast(`Filtered by ${categoryName}`, "info");
+        }
+
+        // Helper function to convert hex color to rgba
+        function hexToRgba(hex, alpha = 1) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+
+        // Fetch tasks from the API
+        function fetchTasks(dateString) {
+            // Show loading spinner
+            $("#loading-spinner").show();
+
+            // Format the date as YYYY-MM-DD for the API
+            const formattedDate = dateString;
+            console.log("Fetching tasks for date:", formattedDate);
+
+            // Update the displayed date
+            updateDisplayedDate(new Date(dateString));
+
+            // Fetch tasks from the API
+            $.ajax({
+                url: `http://127.0.0.1:5000/api/get_task/${formattedDate}`,
+                type: "GET",
+                dataType: "json",
+                headers: {
+                    Accept: "application/json",
+                },
+                success: function (response) {
+                    allTasks = response;
+
+                    displayTasks(allTasks);
+                    updateInsights(allTasks);
+                    updateUpcomingTasks(allTasks);
+                    updateCategoryStats(allTasks);
+                    updateCharts();
+
+                    // Show/hide empty state
+                    if (allTasks.length === 0) {
+                        $("#empty-state").fadeIn(300);
+                    } else {
+                        $("#empty-state").hide();
+                    }
+
+                    // Hide loading spinner
+                    $("#loading-spinner").hide();
+                },
+                error: function (error) {
+                    console.error("Error fetching tasks:", error);
+                    // Use sample tasks for demo if API fails
+                    useSampleTasks();
+
+                    // Hide loading spinner
+                    $("#loading-spinner").hide();
+                }
+            });
+        }
+
+        // Use sample tasks if API fails
+        function useSampleTasks() {
+            allTasks = [
+                {
+                    _id: "task1",
+                    name: "Team Meeting",
+                    category: "Work",
+                    start_time: "11:00",
+                    end_time: "12:00",
+                    description: "Weekly team sync to discuss project progress",
+                    completed: false,
+                    date: formatDateForAPI(currentDisplayDate)
+                },
+                {
+                    _id: "task2",
+                    name: "Lunch Break",
+                    category: "Personal",
+                    start_time: "12:30",
+                    end_time: "13:30",
+                    description: "Lunch with colleagues",
+                    completed: true,
+                    date: formatDateForAPI(currentDisplayDate)
+                },
+                {
+                    _id: "task3",
+                    name: "Project Review",
+                    category: "Work",
+                    start_time: "14:30",
+                    end_time: "15:30",
+                    description: "Review project deliverables with the client",
+                    completed: false,
+                    date: formatDateForAPI(currentDisplayDate)
+                },
+                {
+                    _id: "task4",
+                    name: "Workout",
+                    category: "Health",
+                    start_time: "18:00",
+                    end_time: "19:00",
+                    description: "Gym session - cardio and strength training",
+                    completed: false,
+                    date: formatDateForAPI(currentDisplayDate)
+                }
+            ];
+
+            displayTasks(allTasks);
+            updateInsights(allTasks);
+            updateUpcomingTasks(allTasks);
+            updateCategoryStats(allTasks);
+            updateCharts();
+
+            // Hide empty state
+            $("#empty-state").hide();
+
+            // Show toast notification
+            showToast("Using sample tasks (API unavailable)", "warning");
+        }
+
+        // Display tasks on the schedule
+        function displayTasks(tasks) {
+            // Clear existing tasks
+            $("#tasks-container").empty();
+
+            // Group tasks by time slots
+            const timeSlots = groupTasksByTimeSlots(tasks);
+
+            // Display each task
+            Object.keys(timeSlots).forEach(function (timeSlot) {
+                const tasksInSlot = timeSlots[timeSlot];
+                const taskCount = tasksInSlot.length;
+
+                // Display each task in the time slot
+                tasksInSlot.forEach(function (task, index) {
+                    const $taskElement = createTaskElement(task, index, taskCount);
+                    $("#tasks-container").append($taskElement);
+                });
+            });
+
+            // Make tasks draggable
+            makeTasksDraggable();
+
+            // Add animation to tasks
+            $(".task").each(function (index) {
+                const $this = $(this);
+                setTimeout(function () {
+                    $this.css("opacity", "1");
+                    $this.css("transform", "translateY(0)");
+                }, index * 100);
+            });
+        }
+
+        // Make tasks draggable
+        function makeTasksDraggable() {
+            $(".task").each(function () {
+                const $task = $(this);
+
+                $task.attr("draggable", "true");
+
+                $task.on("dragstart", function (e) {
+                    e.originalEvent.dataTransfer.setData("text/plain", $task.data("id"));
+                    $task.addClass("dragging");
+                });
+
+                $task.on("dragend", function () {
+                    $task.removeClass("dragging");
+                    $(".task-dropzone").remove();
+                });
+            });
+
+            // Make time grid rows accept drops
+            $("#time-grid > div").each(function () {
+                const $row = $(this);
+
+                $row.on("dragover", function (e) {
+                    e.preventDefault();
+
+                    // Add dropzone if not already present
+                    if ($row.find(".task-dropzone").length === 0) {
+                        $row.append('<div class="task-dropzone absolute inset-0 z-10"></div>');
+                    }
+
+                    $row.find(".task-dropzone").addClass("active");
+                });
+
+                $row.on("dragleave", function () {
+                    $row.find(".task-dropzone").removeClass("active");
+                });
+
+                $row.on("drop", function (e) {
+                    e.preventDefault();
+                    const taskId = e.originalEvent.dataTransfer.getData("text/plain");
+                    const hour = $row.data("hour");
+
+                    // Handle the task drop - update the task time
+                    handleTaskDrop(taskId, hour);
+
+                    // Remove dropzone
+                    $row.find(".task-dropzone").remove();
+                });
+            });
+        }
+
+        // Handle task drop - update task time
+        function handleTaskDrop(taskId, newHour) {
+            // Find the task
+            const taskIndex = allTasks.findIndex(task => task._id === taskId);
+            if (taskIndex === -1) return;
+
+            const task = allTasks[taskIndex];
+
+            // Get current start and end times
+            const [startHour, startMinute] = task.start_time.split(":").map(Number);
+            const [endHour, endMinute] = task.end_time.split(":").map(Number);
+
+            // Calculate duration in minutes
+            const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+
+            // Calculate new end hour based on duration
+            const newEndHour = newHour + Math.floor(durationMinutes / 60);
+            const newEndMinute = durationMinutes % 60;
+
+
+            // Format new times
+            const newStartTime = `${newHour.toString().padStart(2, "0")
+                }:00`;
+            const newEndTime = `${newEndHour.toString().padStart(2, "0")}:${newEndMinute.toString().padStart(2, "0")} `;
+
+            // Update task times
+            task.start_time = newStartTime;
+            task.end_time = newEndTime;
+
+            // Call API to update task
+            updateTaskTimes(taskId, newStartTime, newEndTime);
+
+            // Refresh display
+            displayTasks(allTasks);
+            updateUpcomingTasks(allTasks);
+
+            // Show toast
+            showToast(`Task moved to ${formatTime(newStartTime)} `, "success");
+        }
+
+        // Update task times via API
+        function updateTaskTimes(taskId, startTime, endTime) {
+            // Call the edit_task API endpoint
+            $.ajax({
+                url: "http://127.0.0.1:5000/api/edit_task",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    task_id: taskId,
+                    start_time: startTime,
+                    end_time: endTime
+                }),
+                error: function (error) {
+                    console.error("Error updating task times:", error);
+                }
+            });
+        }
+
+        // Group tasks by time slots for overlapping detection
+        function groupTasksByTimeSlots(tasks) {
+            // First, sort tasks by start time
+            const sortedTasks = [...tasks].sort((a, b) => {
+                return (
+                    a.start_time.localeCompare(b.start_time) ||
+                    a.end_time.localeCompare(b.end_time)
+                );
+            });
+
+            // Find overlapping groups
+            const overlappingGroups = [];
+
+            for (let i = 0; i < sortedTasks.length; i++) {
+                const currentTask = sortedTasks[i];
+
+                // Check if this task overlaps with any existing group
+                let foundGroup = false;
+
+                for (let group of overlappingGroups) {
+                    // Check if current task overlaps with any task in this group
+                    const overlapsWithGroup = group.some((groupTask) => {
+                        return tasksOverlap(currentTask, groupTask);
+                    });
+
+                    if (overlapsWithGroup) {
+                        group.push(currentTask);
+                        foundGroup = true;
+                        break;
+                    }
+                }
+
+                // If no overlapping group found, create a new group
+                if (!foundGroup) {
+                    overlappingGroups.push([currentTask]);
+                }
+            }
+
+            // Merge groups that have common tasks
+            let merged = true;
+            while (merged) {
+                merged = false;
+
+                for (let i = 0; i < overlappingGroups.length; i++) {
+                    for (let j = i + 1; j < overlappingGroups.length; j++) {
+                        // Check if groups share any tasks
+                        const groupsOverlap = overlappingGroups[i].some((task1) => {
+                            return overlappingGroups[j].some((task2) => {
+                                return tasksOverlap(task1, task2);
+                            });
+                        });
+
+                        if (groupsOverlap) {
+                            // Merge groups
+                            overlappingGroups[i] = [
+                                ...overlappingGroups[i],
+                                ...overlappingGroups[j],
+                            ];
+                            // Remove duplicate tasks
+                            overlappingGroups[i] = Array.from(new Set(overlappingGroups[i]));
+                            // Remove the merged group
+                            overlappingGroups.splice(j, 1);
+                            merged = true;
+                            break;
+                        }
+                    }
+                    if (merged) break;
+                }
+            }
+
+            // Convert to the expected format
+            const timeSlots = {};
+
+            overlappingGroups.forEach((group, index) => {
+                const key = `group - ${index} `;
+                timeSlots[key] = group;
+            });
+
+            return timeSlots;
+        }
+
+        // Helper function to check if two tasks overlap
+        function tasksOverlap(task1, task2) {
+            // Convert times to comparable format (minutes since midnight)
+            const [startHour1, startMinute1] = task1.start_time.split(":").map(Number);
+            const [endHour1, endMinute1] = task1.end_time.split(":").map(Number);
+            const [startHour2, startMinute2] = task2.start_time.split(":").map(Number);
+            const [endHour2, endMinute2] = task2.end_time.split(":").map(Number);
+
+            const start1 = startHour1 * 60 + startMinute1;
+            const end1 = endHour1 * 60 + endMinute1;
+            const start2 = startHour2 * 60 + startMinute2;
+            const end2 = endHour2 * 60 + endMinute2;
+
+            // Check for overlap
+            return start1 < end2 && start2 < end1;
+        }
+
+        // Create task element
+        function createTaskElement(task, index, totalInSlot) {
+            // Validate task data
+            if (!task.end_time) {
+                console.warn(
+                    `Task "${task.name}" is missing end_time, using default duration of 1 hour`
+                );
+                // Set default end time to 1 hour after start time
+                const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                const endHour = startHour + 1;
+                task.end_time = `${endHour.toString().padStart(2, "0")}:${startMinute
+                    .toString()
+                    .padStart(2, "0")
+                    } `;
+            }
+
+            const $taskElement = $("<div>", {
+                class: "task pointer-events-auto absolute rounded-xl shadow-sm transition-all duration-300 opacity-0 transform translate-y-4",
+                "data-id": task._id,
+                "data-category": task.category
+            });
+
+            // Add completed class if task is completed
+            if (task.completed) {
+                $taskElement.addClass("completed opacity-70");
+            }
+
+            // Get category color from map or use a default
+            const categoryColor = categoryColorMap[task.category] || "#94a3b8"; // slate-400
+
+            // Apply dynamic styling based on category color
+            $taskElement.css({
+                backgroundColor: hexToRgba(categoryColor, task.completed ? 0.6 : 0.9),
+                borderLeft: `3px solid ${categoryColor} `
+            });
+
+            // Parse start and end times
+            const [startHour, startMinute] = task.start_time.split(":").map(Number);
+            const [endHour, endMinute] = task.end_time.split(":").map(Number);
+
+            // Calculate position and height
+            const hourHeight = 80; // 80px per hour
+            const minuteHeight = hourHeight / 60; // height per minute
+
+            // Position from top
+            const startFromTop = (startHour * hourHeight) + (startMinute * minuteHeight);
+
+            // Calculate duration in minutes
+            const durationMinutes =
+                endHour * 60 + endMinute - (startHour * 60 + startMinute);
+
+            // Calculate actual height based on duration
+            // For short tasks (less than 30 minutes), ensure a minimum height of 30px
+            const actualHeight = Math.max(durationMinutes * minuteHeight, durationMinutes < 30 ? 30 : 20);
+
+            // Calculate width based on number of tasks in the same time slot
+            // If it's the only task in the slot, make it full width with a small margin
+            const width = totalInSlot === 1 ? 98 : 100 / totalInSlot;
+            const left = totalInSlot === 1 ? 1 : width * index;
+
+            // Set position and size
+            $taskElement.css({
+                top: `${startFromTop}px`,
+                height: `${actualHeight}px`,
+                width: totalInSlot === 1 ? 'calc(98% - 10px)' : `calc(${width} % - 10px)`,
+                left: `calc(${left} % + 5px)`,
+            });
+
+            // Create task content - same for all tasks regardless of duration
+            const taskContent = `
+            <div class="p-3 h-full flex flex-col task-content justify-between" >
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-white truncate">${task.name}</h4>
+                            <p class="text-white/80 mt-0.5 text-xs">${formatTime(task.start_time)} - ${formatTime(task.end_time)}</p>
+                        </div>
+                        <div class="task-complete-btn ml-1 rounded-full bg-white/20 flex items-center justify-center cursor-pointer hover:bg-white/30 transition-colors p-1" data-id="${task._id}">
+                            ${task.completed
+                    ? '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="white"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>'
+                    : '<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2"></svg>'
+                }
+                        </div>
+                    </div>
+                    <div class="mt-auto">
+                        <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-white/20 text-white">
+                            ${task.category}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            $taskElement.html(taskContent);
+
+            // Add click event for task editing
+            $taskElement.on("click", function (e) {
+                // Don't open edit modal if clicking the complete button
+                if (!$(e.target).closest(".task-complete-btn").length) {
+                    openEditTaskModal(task);
+                }
+            });
+
+            // Add click event for task completion button
+            $taskElement.find(".task-complete-btn").on("click", function (e) {
+                e.stopPropagation(); // Prevent task click event
+                toggleTaskCompletion(task._id);
+            });
+
+            return $taskElement;
+        }
+
+        // Toggle task completion status
+        function toggleTaskCompletion(taskId) {
+            // Find the task in the array
+            const taskIndex = allTasks.findIndex((task) => task._id === taskId);
+
+            if (taskIndex !== -1) {
+                // Get the current task
+                const task = allTasks[taskIndex];
+
+                // Determine which endpoint to call based on current completion status
+                const endpoint = task.completed ?
+                    "http://127.0.0.1:5000/api/mark_incompleted" :
+                    "http://127.0.0.1:5000/api/mark_completed";
+
+                // The new status will be the opposite of the current status
+                const newStatus = !task.completed;
+
+                // Show loading spinner
+                $("#loading-spinner").show();
+
+                // Call the appropriate API endpoint
+                $.ajax({
+                    url: endpoint,
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({
+                        task_id: taskId
+                    }),
+                    success: function (response) {
+                        if (response.status === "success") {
+                            // Update the completed status in our local array
+                            allTasks[taskIndex].completed = newStatus;
+
+                            // Update the UI
+                            const $task = $(`.task[data-id="${taskId}"]`);
+                            const $completeBtn = $task.find(".task-complete-btn");
+
+                            if (newStatus) { // Now completed
+                                $task.addClass("completed opacity-70");
+                                $completeBtn.addClass("task-complete-animation");
+                                $completeBtn.html('<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="white"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>');
+
+                                // Show toast notification
+                                showToast(`"${task.name}" completed`, "success");
+                            } else { // Now incomplete
+                                $task.removeClass("completed opacity-70");
+                                $completeBtn.html('<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="none" stroke="white" stroke-width="2"></svg>');
+
+                                // Show toast notification
+                                showToast(`"${task.name}" marked as incomplete`, "info");
+                            }
+
+                            // Remove animation class after animation completes
+                            setTimeout(() => {
+                                $completeBtn.removeClass("task-complete-animation");
+                            }, 500);
+
+                            // Update insights
+                            updateInsights(allTasks);
+                            updateUpcomingTasks(allTasks);
+                            updateCategoryStats(allTasks);
+                            updateCharts();
+                        } else {
+                            // Show error toast
+                            showToast("Failed to update task status: " + response.message, "error");
+                        }
+                    },
+                    error: function (error) {
+                        console.error("Error updating task status:", error);
+                        showToast("Failed to update task status. Please try again.", "error");
+                    },
+                    complete: function () {
+                        // Hide loading spinner
+                        $("#loading-spinner").hide();
+                    }
+                });
+            }
+        }
+
+        // Open modal for editing a task
+        function openEditTaskModal(task) {
+            // Set modal title
+            $("#modal-title").text("Edit Task");
+
+            // Fill form with task data
+            $("#task-id").val(task._id);
+            $("#task-name").val(task.name);
+            $("#task-category").val(task.category);
+            $("#task-start-time").val(task.start_time);
+            $("#task-end-time").val(task.end_time);
+            $("#task-description").val(task.description || "");
+            $("#task-completed").val(task.completed.toString());
+
+            // Set active category button
+            $(".category-pill").removeClass("active border-current").addClass("border-transparent");
+            $(`.category - pill[data-category="${task.category}"]`).addClass("active border-current").removeClass("border-transparent");
+
+            // Show delete button
+            $("#delete-task-btn").show();
+
+            // Show modal with animation
+            $("#task-modal").css({
+                opacity: 1,
+                pointerEvents: "auto"
+            });
+
+            $("#task-modal > div").css("transform", "translateY(0)");
+        }
+
+        // Open modal for creating a new task
+        function openNewTaskModal() {
+            // Set modal title
+            $("#modal-title").text("Add New Task");
+
+
+            // Clear form
+            $("#task-form")[0].reset();
+            $("#task-id").val("");
+
+            // Clear active category
+            $(".category-pill").removeClass("active border-current").addClass("border-transparent");
+
+            // Set default category (first one)
+            if (categories.length > 0) {
+                const defaultCategory = categories[0].name;
+                $("#task-category").val(defaultCategory);
+                $(`.category - pill[data-category= "${defaultCategory}"]`).addClass("active border-current").removeClass("border-transparent");
+            }
+
+            // Set default times
+            const now = new Date();
+            const currentHour = now.getHours();
+            const nextHour = currentHour + 1;
+
+            $("#task-start-time").val(`${currentHour.toString().padStart(2, "0")}:00`);
+            $("#task-end-time").val(`${nextHour.toString().padStart(2, "0")}:00`);
+
+            // Hide delete button
+            $("#delete-task-btn").hide();
+
+            // Show modal with animation
+            $("#task-modal").css({
+                opacity: 1,
+                pointerEvents: "auto"
+            });
+
+            $("#task-modal > div").css("transform", "translateY(0)");
+        }
+
+        // Open new task modal with specific time
+        function openNewTaskModalWithTime(hour, minute) {
+            // Set modal title
+            $("#modal-title").text("Add New Task");
+
+            // Clear form
+            $("#task-form")[0].reset();
+            $("#task-id").val("");
+
+            // Clear active category
+            $(".category-pill").removeClass("active border-current").addClass("border-transparent");
+
+            // Set default category (first one)
+            if (categories.length > 0) {
+                const defaultCategory = categories[0].name;
+                $("#task-category").val(defaultCategory);
+                $(`.category - pill[data-category="${defaultCategory}"]`).addClass("active border-current").removeClass("border-transparent");
+            }
+
+            // Format the hour and minute for the start time
+            const startHour = hour.toString().padStart(2, "0");
+            const startMinute = minute.toString().padStart(2, "0");
+            const startTime = `${startHour}:${startMinute} `;
+
+            // Calculate end time (30 minutes later)
+            let endHour = hour;
+            let endMinute = minute + 30;
+
+            // If end minute is 60 or more, increment hour and adjust minutes
+            if (endMinute >= 60) {
+                endHour += 1;
+                endMinute -= 60;
+            }
+
+            const endTime = `${endHour.toString().padStart(2, "0")}:${endMinute.toString().padStart(2, "0")} `;
+
+            // Set the times in the form
+            $("#task-start-time").val(startTime);
+            $("#task-end-time").val(endTime);
+
+            // Hide delete button
+            $("#delete-task-btn").hide();
+
+            // Show modal with animation
+            $("#task-modal").css({
+                opacity: 1,
+                pointerEvents: "auto"
+            });
+
+            $("#task-modal > div").css("transform", "translateY(0)");
+        }
+
+        // Close task modal
+        function closeTaskModal() {
+            $("#task-modal > div").css("transform", "translateY(8px)");
+
+            setTimeout(function () {
+                $("#task-modal").css({
+                    opacity: 0,
+                    pointerEvents: "none"
+                });
+            }, 200);
+        }
+
+        // Save task changes
+        function saveTaskChanges() {
+            const taskId = $("#task-id").val();
+            const isNewTask = !taskId;
+            const taskName = $("#task-name").val();
+            const taskCategory = $("#task-category").val();
+            const taskStartTime = $("#task-start-time").val();
+            const taskEndTime = $("#task-end-time").val();
+            const taskDescription = $("#task-description").val();
+            const taskCompleted = $("#task-completed").val() === "true";
+
+            // Fix the date format to be YYYY-MM-DD without spaces
+            const taskDate = formatDateForAPI(currentDisplayDate);
+
+            // Prepare data for API
+            const apiData = {
+                title: taskName,
+                date: taskDate,
+                start_time: taskStartTime,
+                end_time: taskEndTime,
+                category: taskCategory,
+                description: taskDescription,
+                completed: taskCompleted
+            };
+
+            // Show loading spinner
+            $("#loading-spinner").show();
+
+            if (isNewTask) {
+                // Add new task via API
+                $.ajax({
+                    url: "http://127.0.0.1:5000/api/add_task",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(apiData),
+                    success: function (response) {
+                        // Add the new task to our local array with the ID from the server
+                        const newTask = {
+                            _id: response.task_id || `temp_${Date.now()} `,
+                            name: taskName,
+                            category: taskCategory,
+                            start_time: taskStartTime,
+                            end_time: taskEndTime,
+                            description: taskDescription,
+                            completed: taskCompleted,
+                            date: taskDate,
+                        };
+
+                        allTasks.push(newTask);
+
+                        // Show toast notification
+                        showToast(`Task "${taskName}" has been created`, "success");
+
+                        // Refresh tasks display
+                        displayTasks(allTasks);
+                        updateInsights(allTasks);
+                        updateUpcomingTasks(allTasks);
+                        updateCategoryStats(allTasks);
+                        updateCharts();
+
+                        // Hide empty state if needed
+                        if (allTasks.length > 0) {
+                            $("#empty-state").hide();
+                        }
+                    },
+                    error: function (error) {
+                        console.error("Error adding task:", error);
+                        showToast("Failed to add task. Please try again.", "error");
+
+                        // Fallback: Add to local array anyway for demo purposes
+                        const newTask = {
+                            _id: `temp_${Date.now()} `,
+                            name: taskName,
+                            category: taskCategory,
+                            start_time: taskStartTime,
+                            end_time: taskEndTime,
+                            description: taskDescription,
+                            completed: taskCompleted,
+                            date: taskDate
+                        };
+
+                        allTasks.push(newTask);
+                        displayTasks(allTasks);
+                        updateInsights(allTasks);
+                        updateUpcomingTasks(allTasks);
+                        updateCategoryStats(allTasks);
+                        updateCharts();
+
+                        if (allTasks.length > 0) {
+                            $("#empty-state").hide();
+                        }
+                    },
+                    complete: function () {
+                        // Hide loading spinner
+                        $("#loading-spinner").hide();
+
+                        // Close modal
+                        closeTaskModal();
+                    }
+                });
+            } else {
+                // Update existing task via API
+                const editData = {
+                    task_id: taskId,
+                    title: taskName,
+                    start_time: taskStartTime,
+                    end_time: taskEndTime,
+                    category: taskCategory,
+                    description: taskDescription
+                };
+
+                // Call the edit_task API endpoint
+                $.ajax({
+                    url: "http://127.0.0.1:5000/api/edit_task",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(editData),
+                    success: function (response) {
+                        if (response.status === "success") {
+                            // Update task in local array
+                            const index = allTasks.findIndex((task) => task._id === taskId);
+                            if (index !== -1) {
+                                allTasks[index] = {
+                                    ...allTasks[index],
+                                    name: taskName,
+                                    category: taskCategory,
+                                    start_time: taskStartTime,
+                                    end_time: taskEndTime,
+                                    description: taskDescription
+                                };
+                            }
+
+                            // Show toast notification
+                            showToast(`Task "${taskName}" has been updated`, "success");
+
+                            // Refresh tasks display
+                            displayTasks(allTasks);
+                            updateInsights(allTasks);
+                            updateUpcomingTasks(allTasks);
+                            updateCategoryStats(allTasks);
+                            updateCharts();
+                        } else {
+                            showToast("Failed to update task: " + response.message, "error");
+                        }
+                    },
+                    error: function (error) {
+                        console.error("Error updating task:", error);
+                        showToast("Failed to update task. Please try again.", "error");
+                    },
+                    complete: function () {
+                        // Hide loading spinner
+                        $("#loading-spinner").hide();
+
+                        // Close modal
+                        closeTaskModal();
+                    }
+                });
+            }
+        }
+
+        // Delete task
+        function deleteTask() {
+            const taskId = $("#task-id").val();
+            const taskName = $("#task-name").val();
+
+            // Confirm deletion
+            if (confirm("Are you sure you want to delete this task?")) {
+                // Call the API to delete the task
+                $.ajax({
+                    url: 'http://127.0.0.1:5000/api/delete_task',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        task_id: taskId
+                    }),
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            // Remove task from local array
+                            const index = allTasks.findIndex((task) => task._id === taskId);
+                            if (index !== -1) {
+                                allTasks.splice(index, 1);
+                            }
+
+                            // Show toast notification
+                            showToast(`Task "${taskName}" has been deleted`, "warning");
+
+                            // Close modal
+                            closeTaskModal();
+
+                            // Refresh tasks display
+                            displayTasks(allTasks);
+                            updateInsights(allTasks);
+                            updateUpcomingTasks(allTasks);
+                            updateCategoryStats(allTasks);
+                            updateCharts();
+
+                            // Show empty state if needed
+                            if (allTasks.length === 0) {
+                                $("#empty-state").fadeIn(300);
+                            }
+                        } else {
+                            // Show error message
+                            showToast(`Error: ${response.message} `, "error");
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        // Show error message
+                        showToast(`Error deleting task: ${error} `, "error");
+                    }
+                });
+            }
+        }
+
+        // Open backlog modal
+        function openBacklogModal() {
+            // Set modal title
+            $("#backlog-modal-title").text("Add to Backlog");
+
+            // Clear form
+            $("#backlog-form")[0].reset();
+            $("#backlog-id").val("");
+
+            // Clear active category
+            $(".category-pill", "#backlog-category-container").removeClass("active border-current").addClass("border-transparent");
+
+            // Set default category (first one)
+            if (categories.length > 0) {
+                const defaultCategory = categories[0].name;
+                $("#backlog-category").val(defaultCategory);
+                $(`.category - pill[data-category="${defaultCategory}"]`, "#backlog-category-container").addClass("active border-current").removeClass("border-transparent");
+            }
+
+            // Show modal with animation
+            $("#backlog-modal").css({
+                opacity: 1,
+                pointerEvents: "auto"
+            });
+
+            $("#backlog-modal > div").css("transform", "translateY(0)");
+        }
+
+        // Close backlog modal
+        function closeBacklogModal() {
+            $("#backlog-modal > div").css("transform", "translateY(8px)");
+
+            setTimeout(function () {
+                $("#backlog-modal").css({
+                    opacity: 0,
+                    pointerEvents: "none"
+                });
+            }, 200);
+        }
+
+        // Save backlog item
+        function saveBacklogItem() {
+            const backlogTitle = $("#backlog-title").val();
+            const backlogCategory = $("#backlog-category").val();
+            const backlogDescription = $("#backlog-description").val();
+            const backlogPriority = $("#backlog-priority").val();
+
+            // Prepare data for API
+            const apiData = {
+                title: backlogTitle,
+                category: backlogCategory,
+                description: backlogDescription,
+                priority: backlogPriority
+            };
+
+            // Show loading spinner
+            $("#loading-spinner").show();
+
+            // Add backlog item via API
+            $.ajax({
+                url: "http://127.0.0.1:5000/api/add_backlog",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(apiData),
+                success: function (response) {
+                    if (response.status === "success") {
+                        // Show toast notification
+                        showToast(`"${backlogTitle}" added to backlog`, "success");
+
+                        // Refresh backlog items
+                        fetchBacklogItems();
+                    } else {
+                        showToast("Failed to add backlog item: " + response.message, "error");
+                    }
+                },
+                error: function (error) {
+                    console.error("Error adding backlog item:", error);
+                    showToast("Failed to add backlog item. Please try again.", "error");
+                },
+                complete: function () {
+                    // Hide loading spinner
+                    $("#loading-spinner").hide();
+
+                    // Close modal
+                    closeBacklogModal();
+                }
+            });
+        }
+
+        // Fetch backlog items
+        function fetchBacklogItems() {
+            $.ajax({
+                url: "http://127.0.0.1:5000/api/get_backlog",
+                type: "GET",
+                dataType: "json",
+                success: function (response) {
+                    backlogItems = response;
+                    displayBacklogItems(backlogItems);
+                },
+                error: function (error) {
+                    console.error("Error fetching backlog items:", error);
+                    // Use sample backlog items
+                    useSampleBacklogItems();
+                }
+            });
+        }
+
+        // Use sample backlog items
+        function useSampleBacklogItems() {
+            backlogItems = [
+                {
+                    _id: "backlog1",
+                    name: "Research new project ideas",
+                    category: "Work",
+                    description: "Look into potential new directions for the team",
+                    priority: "high"
+                },
+                {
+                    _id: "backlog2",
+                    name: "Update portfolio website",
+                    category: "Personal",
+                    description: "Add recent projects and refresh design",
+                    priority: "medium"
+                },
+                {
+                    _id: "backlog3",
+                    name: "Read design patterns book",
+                    category: "Learning",
+                    description: "Chapter 1-3 for this week",
+                    priority: "low"
+                }
+            ];
+
+            displayBacklogItems(backlogItems);
+        }
+
+        // Display backlog items
+        function displayBacklogItems(items) {
+            // Implementation will go here
+        }
+
+        // Update insights panel based on tasks
+        function updateInsights(tasks) {
+            // Calculate completion percentage
+            const totalTasks = tasks.length;
+            const completedTasks = tasks.filter((task) => task.completed).length;
+            const completionPercentage =
+                totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            // Update the UI
+            $("#completion-percentage").text(`${completionPercentage}% `);
+            $("#completed-count").text(`${completedTasks}/${totalTasks} tasks completed`);
+            $("#completion-progress").css("width", `${completionPercentage}%`);
+
+            // Calculate remaining time
+            const remainingTime = calculateRemainingTime(tasks);
+            $("#remaining-time").text(remainingTime);
+        }
+
+        // Calculate remaining time for incomplete tasks
+        function calculateRemainingTime(tasks) {
+            const incompleteTasks = tasks.filter(task => !task.completed);
+            let totalMinutes = 0;
+
+            incompleteTasks.forEach(task => {
+                const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                const [endHour, endMinute] = task.end_time.split(":").map(Number);
+
+                const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+                totalMinutes += durationMinutes;
+            });
+
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            return `${hours}h ${minutes}m remaining`;
+        }
+
+        // Update category statistics
+        function updateCategoryStats(tasks) {
+            // Calculate category durations
+            const categoryDurations = calculateCategoryDurations(tasks);
+
+            // Update category counts in sidebar
+            categories.forEach(category => {
+                const tasksInCategory = tasks.filter(task => task.category === category.name).length;
+                $(`.category-count:eq(${categories.indexOf(category)})`).text(tasksInCategory);
+            });
+        }
+
+        // Calculate duration for each category
+        function calculateCategoryDurations(tasks) {
+            const categoryDurations = {};
+
+            // Initialize all categories with zero duration
+            categories.forEach((category) => {
+                categoryDurations[category.name] = 0;
+            });
+
+            // Calculate durations from tasks
+            tasks.forEach(function (task) {
+                const category = task.category;
+
+                // Skip if category doesn't exist in our list
+                if (categoryDurations[category] === undefined) return;
+
+                // Parse start and end times
+                const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                const [endHour, endMinute] = task.end_time.split(":").map(Number);
+
+                // Calculate duration in minutes
+                const durationMinutes =
+                    endHour * 60 + endMinute - (startHour * 60 + startMinute);
+
+                // Add to category total
+                categoryDurations[category] += durationMinutes;
+            });
+
+            return categoryDurations;
+        }
+
+        // Update upcoming tasks section
+        function updateUpcomingTasks(tasks) {
+            const $upcomingTasks = $("#upcoming-tasks");
+            $upcomingTasks.empty();
+
+            // Get current time
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+            // Filter and sort upcoming tasks
+            const upcomingTasks = tasks
+                .filter(task => {
+                    const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                    const startTimeInMinutes = startHour * 60 + startMinute;
+                    return !task.completed && startTimeInMinutes > currentTimeInMinutes;
+                })
+                .sort((a, b) => {
+                    const [aStartHour, aStartMinute] = a.start_time.split(":").map(Number);
+                    const [bStartHour, bStartMinute] = b.start_time.split(":").map(Number);
+                    return (aStartHour * 60 + aStartMinute) - (bStartHour * 60 + bStartMinute);
+                })
+                .slice(0, 3); // Show only next 3 tasks
+
+            if (upcomingTasks.length === 0) {
+                $upcomingTasks.html('<p class="text-sm text-slate-500 dark:text-slate-400 text-center py-4">No upcoming tasks for today</p>');
+                return;
+            }
+
+            // Display upcoming tasks
+            upcomingTasks.forEach(task => {
+                const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                const startTimeInMinutes = startHour * 60 + startMinute;
+                const minutesUntilTask = startTimeInMinutes - currentTimeInMinutes;
+
+                let timeDisplay;
+                if (minutesUntilTask < 60) {
+                    timeDisplay = `In ${minutesUntilTask}m`;
+                } else {
+                    const hours = Math.floor(minutesUntilTask / 60);
+                    const minutes = minutesUntilTask % 60;
+                    timeDisplay = `In ${hours}h ${minutes}m`;
+                }
+
+                // Get category color
+                const categoryColor = categoryColorMap[task.category] || "#94a3b8";
+
+                const $taskItem = $(`
+                    <div class="flex items-center p-3 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-all hover:shadow-md">
+                        <div class="w-2 h-2 rounded-full mr-3" style="background-color: ${categoryColor};"></div>
+                        <div class="flex-1 min-w-0">
+                            <h5 class="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">${task.name}</h5>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">${formatTime(task.start_time)} - ${formatTime(task.end_time)}</p>
+                        </div>
+                        <span class="text-xs font-medium ${minutesUntilTask < 60 ? 'text-warmth-500 dark:text-warmth-400' : 'text-slate-500 dark:text-slate-400'}">${timeDisplay}</span>
+                    </div>
+                `);
+
+                $upcomingTasks.append($taskItem);
+            });
+        }
+
+        // Initialize charts
+        function initializeCharts() {
+            // Category breakdown chart
+            const categoryCtx = document.getElementById('category-chart').getContext('2d');
+            categoryChart = new Chart(categoryCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    const value = context.raw;
+                                    const hours = Math.floor(value / 60);
+                                    const minutes = value % 60;
+                                    return `${hours}h ${minutes}m`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Focus time chart
+            const focusCtx = document.getElementById('focus-chart').getContext('2d');
+            focusChart = new Chart(focusCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Focus Time',
+                        data: [180, 240, 150, 210, 225, 120, 90], // Sample data in minutes
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + 'm';
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update charts with current data
+        function updateCharts() {
+            if (!categoryChart || !focusChart) return;
+
+            // Update category chart
+            const categoryDurations = calculateCategoryDurations(allTasks);
+            const categoryLabels = [];
+            const categoryData = [];
+            const categoryColors = [];
+            const categoryLegend = $("#category-legend");
+            categoryLegend.empty();
+
+            // Create legend items and chart data
+            categories.forEach((category, index) => {
+                const duration = categoryDurations[category.name];
+                if (duration > 0) {
+                    categoryLabels.push(category.name);
+                    categoryData.push(duration);
+                    categoryColors.push(category.color);
+
+                    // Format duration for display
+                    const hours = Math.floor(duration / 60);
+                    const minutes = duration % 60;
+
+                    // Add to legend
+                    const legendItem = $(`
+                        <div class="flex items-center">
+                            <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${category.color};"></div>
+                            <span class="text-xs text-slate-700 dark:text-slate-300">${category.name}</span>
+                            <span class="text-xs text-slate-500 dark:text-slate-400 ml-auto">${hours}h ${minutes}m</span>
+                        </div>
+                    `);
+                    categoryLegend.append(legendItem);
+                }
+            });
+
+            // Update chart data
+            categoryChart.data.labels = categoryLabels;
+            categoryChart.data.datasets[0].data = categoryData;
+            categoryChart.data.datasets[0].backgroundColor = categoryColors;
+            categoryChart.update();
+
+            // Update focus chart theme
+            const isDarkMode = $("html").hasClass("dark");
+            focusChart.options.scales.y.ticks.color = isDarkMode ? '#94a3b8' : '#64748b';
+            focusChart.options.scales.x.ticks.color = isDarkMode ? '#94a3b8' : '#64748b';
+            focusChart.update();
+        }
+
+        // Navigate to previous day
+        function navigateToPreviousDay() {
+            currentDisplayDate.setDate(currentDisplayDate.getDate() - 1);
+            const dateString = formatDateForAPI(currentDisplayDate);
+            fetchTasks(dateString);
+
+            // Add animation to button
+            $("#prev-day").addClass("animate-pulse-slow");
+            setTimeout(function () {
+                $("#prev-day").removeClass("animate-pulse-slow");
+            }, 1000);
+        }
+
+        // Navigate to next day
+        function navigateToNextDay() {
+            currentDisplayDate.setDate(currentDisplayDate.getDate() + 1);
+            const dateString = formatDateForAPI(currentDisplayDate);
+            fetchTasks(dateString);
+
+            // Add animation to button
+            $("#next-day").addClass("animate-pulse-slow");
+            setTimeout(function () {
+                $("#next-day").removeClass("animate-pulse-slow");
+            }, 1000);
+        }
+
+        // Update the displayed date in the header
+        function updateDisplayedDate(date) {
+            const options = {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            };
+            $("#current-date").text(date.toLocaleDateString("en-US", options));
+        }
+
+        // Format date for API
+        function formatDateForAPI(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, "0");
+            const day = date.getDate().toString().padStart(2, "0");
+            return `${year}-${month}-${day}`.trim();
+        }
+
+        // Toggle focus mode
+        function toggleFocusMode() {
+            focusModeActive = !focusModeActive;
+
+            if (focusModeActive) {
+                // Enter focus mode - hide sidebar and right panel
+                $("aside").addClass("transform -translate-x-full");
+                $(".w-80").addClass("transform translate-x-full");
+                $("main").addClass("ml-0");
+
+                // Show toast
+                showToast("Focus mode enabled. Distractions minimized.", "info");
+            } else {
+                // Exit focus mode
+                $("aside").removeClass("transform -translate-x-full");
+                $(".w-80").removeClass("transform translate-x-full");
+                $("main").removeClass("ml-0");
+
+                // Show toast
+                showToast("Focus mode disabled", "info");
+            }
+        }
+
+        // Setup task notifications
+        function setupTaskNotifications() {
+            // Check for upcoming tasks every minute
+            setInterval(checkUpcomingTasks, 60000);
+        }
+
+        // Check for tasks that are about to start
+        function checkUpcomingTasks() {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+
+            // Find tasks starting in the next 5 minutes
+            const upcomingTasks = allTasks.filter(task => {
+                if (task.completed) return false;
+
+                const [startHour, startMinute] = task.start_time.split(":").map(Number);
+                const startTimeInMinutes = startHour * 60 + startMinute;
+                const minutesUntilStart = startTimeInMinutes - currentTimeInMinutes;
+
+                return minutesUntilStart > 0 && minutesUntilStart <= 5;
+            });
+
+            if (upcomingTasks.length > 0) {
+                // Show notification for the first upcoming task
+                showTaskAlert(upcomingTasks[0]);
+            }
+        }
+
+        // Show task alert notification
+        function showTaskAlert(task) {
+            const [startHour, startMinute] = task.start_time.split(":").map(Number);
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+
+            const startTimeInMinutes = startHour * 60 + startMinute;
+            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+            const minutesUntilStart = startTimeInMinutes - currentTimeInMinutes;
+
+            // Update alert content
+            $("#alert-title").text("Upcoming Task");
+            $("#alert-message").text(`Your task "${task.name}" starts in ${minutesUntilStart} minutes`);
+
+            // Store task ID for snooze/dismiss actions
+            $("#task-alert").data("taskId", task._id);
+
+            // Show alert with animation
+            $("#task-alert").removeClass("scale-0 opacity-0").addClass("scale-100 opacity-100 notification-animation");
+
+            // Play notification sound
+            notificationSound.play();
+        }
+
+        // Dismiss task alert
+        function dismissTaskAlert() {
+            $("#task-alert").removeClass("scale-100 opacity-100").addClass("scale-0 opacity-0");
+        }
+
+        // Snooze task alert
+        function snoozeTaskAlert() {
+            // Hide the alert
+            dismissTaskAlert();
+
+            // Show toast
+            showToast("Task reminder snoozed for 5 minutes", "info");
+
+            // We would normally reschedule the notification here
+            // For demo purposes, we'll just show it again after 5 minutes
+            setTimeout(() => {
+                const taskId = $("#task-alert").data("taskId");
+                const task = allTasks.find(t => t._id === taskId);
+                if (task && !task.completed) {
+                    showTaskAlert(task);
+                }
+            }, 300000); // 5 minutes
+        }
+
+        // Show toast notification
+        function showToast(message, type = "success") {
+            // Define colors based on type
+            let bgColor, textColor, icon;
+
+            switch (type) {
+                case "success":
+                    bgColor = "bg-nature-500";
+                    textColor = "text-white";
+                    icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>';
+                    break;
+                case "warning":
+                    bgColor = "bg-warmth-500";
+                    textColor = "text-white";
+                    icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
+                    break;
+                case "error":
+                    bgColor = "bg-red-500";
+                    textColor = "text-white";
+                    icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" /></svg>';
+                    break;
+                case "info":
+                default:
+                    bgColor = "bg-flow-500";
+                    textColor = "text-white";
+                    icon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>';
+            }
+
+            // Create toast content
+            const $toast = $("#toast");
+            $toast.attr("class", `fixed bottom-4 right - 4 z - 50 px - 4 py - 3 rounded - lg shadow - lg transform translate - y - 10 opacity - 0 transition - all duration - 300 pointer - events - none max - w - xs ${bgColor} ${textColor} `);
+            $toast.html(`<div class="flex items-center" > ${icon} <span>${message}</span></div>`);
+
+            // Show toast
+            $toast.css({
+                transform: "translateY(0)",
+                opacity: 1
+            });
+
+            // Hide after 3 seconds
+            setTimeout(function () {
+                $toast.css({
+                    transform: "translateY(10px)",
+                    opacity: 0
+                });
+            }, 3000);
+        }
+    </script>
+</body>
+
+</html>

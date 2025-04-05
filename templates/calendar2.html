@@ -190,196 +190,202 @@
         </div>
     </div>
 
-<!-- Modal for adding new task -->
-<div class="modal fade" id="addTaskModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Add New Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <form id="addTaskForm">
-                    <div class="mb-3">
-                        <label for="taskTitle" class="form-label small text-muted">Task Title</label>
-                        <input type="text" class="form-control form-control-lg" id="taskTitle" 
-                            placeholder="What are you planning to do?" required>
-                    </div>
+    <!-- Modal for adding new task -->
+    <div class="modal fade" id="addTaskModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Add New Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <form id="addTaskForm">
+                        <div class="mb-3">
+                            <label for="taskTitle" class="form-label small text-muted">Task Title</label>
+                            <input type="text" class="form-control form-control-lg" id="taskTitle"
+                                placeholder="What are you planning to do?" required>
+                        </div>
 
-                    <div class="mb-4">
-                        <label class="form-label small text-muted">Time</label>
-                        <div class="time-picker-container shadow-sm rounded p-3 bg-light">
-                            <div class="time-display mb-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="time-display-item text-center">
-                                        <span id="startTimeDisplay" class="fs-5 fw-bold">9:00 AM</span>
-                                        <span class="time-label small text-muted d-none">Start</span>
-                                    </div>
-                                    <div class="time-separator px-2">
-                                        <i class="bi bi-arrow-right"></i>
-                                    </div>
-                                    <div class="time-display-item text-center">
-                                        <span id="endTimeDisplay" class="fs-5 fw-bold">9:30 AM</span>
-                                        <span class="time-label small text-muted d-none">End</span>
+                        <div class="mb-4">
+                            <label class="form-label small text-muted">Time</label>
+                            <div class="time-picker-container shadow-sm rounded p-3 bg-light">
+                                <div class="time-display mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="time-display-item text-center">
+                                            <span id="startTimeDisplay" class="fs-5 fw-bold">9:00 AM</span>
+                                            <span class="time-label small text-muted d-none">Start</span>
+                                        </div>
+                                        <div class="time-separator px-2">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </div>
+                                        <div class="time-display-item text-center">
+                                            <span id="endTimeDisplay" class="fs-5 fw-bold">9:30 AM</span>
+                                            <span class="time-label small text-muted d-none">End</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="time-slider-container">
-                                <div class="time-labels d-flex justify-content-between small text-muted mb-1">
-                                    <span>8 AM</span>
-                                    <span>12 PM</span>
-                                    <span>4 PM</span>
-                                    <span>8 PM</span>
-                                </div>
-                                <div id="timeRangeSlider" class="mb-2"></div>
-                            </div>
-                            <div class="duration-badge text-center mt-2 small fw-bold" id="durationBadge">
-                                <i class="bi bi-clock me-1"></i> 30 min
-                            </div>
-                            <input type="hidden" id="startTime" value="09:00">
-                            <input type="hidden" id="endTime" value="09:30">
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">Category</label>
-                        <div class="category-selector d-flex gap-2 flex-wrap">
-                            <button type="button" class="category-btn work active" data-category="work">
-                                <i class="bi bi-briefcase"></i> Work
-                            </button>
-                            <button type="button" class="category-btn meeting" data-category="meeting">
-                                <i class="bi bi-people"></i> Meeting
-                            </button>
-                            <button type="button" class="category-btn personal" data-category="personal">
-                                <i class="bi bi-person"></i> Personal
-                            </button>
-                            <button type="button" class="category-btn learning" data-category="learning">
-                                <i class="bi bi-book"></i> Learning
-                            </button>
-                        </div>
-                        <input type="hidden" id="taskCategory" value="work">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="taskDescription" class="form-label small text-muted">Description (Optional)</label>
-                        <textarea class="form-control" id="taskDescription" rows="3" 
-                            placeholder="Add any notes or details about this task"></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary px-4" id="saveTaskBtn">
-                    <i class="bi bi-plus-circle me-1"></i> Add Task
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<!-- Edit Task Modal -->
-<div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="editTaskModalLabel">Edit Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body pt-2">
-                <form id="editTaskForm">
-                    <input type="hidden" id="editTaskId">
-                    <div class="mb-3">
-                        <label for="editTaskTitle" class="form-label small text-muted">Task Title</label>
-                        <input type="text" class="form-control form-control-lg" id="editTaskTitle" 
-                            placeholder="What are you planning to do?" required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label small text-muted">Time</label>
-                        <div class="time-picker-container shadow-sm rounded p-3 bg-light">
-                            <div class="time-display mb-3">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div class="time-display-item text-center">
-                                        <span id="editStartTimeDisplay" class="fs-5 fw-bold">9:00 AM</span>
-                                        <span class="time-label d-block small text-muted d-none">Start</span>
+                                <div class="time-slider-container">
+                                    <div class="time-labels d-flex justify-content-between small text-muted mb-1">
+                                        <span>8 AM</span>
+                                        <span>12 PM</span>
+                                        <span>4 PM</span>
+                                        <span>8 PM</span>
                                     </div>
-                                    <div class="time-separator px-2">
-                                        <i class="bi bi-arrow-right"></i>
-                                    </div>
-                                    <div class="time-display-item text-center">
-                                        <span id="editEndTimeDisplay" class="fs-5 fw-bold">9:30 AM</span>
-                                        <span class="time-label d-block small text-muted d-none">End</span>
-                                    </div>
+                                    <div id="timeRangeSlider" class="mb-2"></div>
                                 </div>
-                            </div>
-                            <div class="time-slider-container">
-                                <div class="time-labels d-flex justify-content-between small text-muted mb-1">
-                                    <span>8 AM</span>
-                                    <span>12 PM</span>
-                                    <span>4 PM</span>
-                                    <span>8 PM</span>
+                                <div class="duration-badge text-center mt-2 small fw-bold" id="durationBadge">
+                                    <i class="bi bi-clock me-1"></i> 30 min
                                 </div>
-                                <div id="editTimeRangeSlider" class="mb-2"></div>
+                                <input type="hidden" id="startTime" value="09:00">
+                                <input type="hidden" id="endTime" value="09:30">
                             </div>
-                            <div class="duration-badge text-center mt-2 small fw-bold" id="editDurationBadge">
-                                <i class="bi bi-clock me-1"></i> 30 min
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Category</label>
+                            <div class="category-selector d-flex gap-2 flex-wrap">
+                                <button type="button" class="category-btn work active" data-category="work">
+                                    <i class="bi bi-briefcase"></i> Work
+                                </button>
+                                <button type="button" class="category-btn meeting" data-category="meeting">
+                                    <i class="bi bi-people"></i> Meeting
+                                </button>
+                                <button type="button" class="category-btn personal" data-category="personal">
+                                    <i class="bi bi-person"></i> Personal
+                                </button>
+                                <button type="button" class="category-btn learning" data-category="learning">
+                                    <i class="bi bi-book"></i> Learning
+                                </button>
                             </div>
-                            <input type="hidden" id="editStartTime" value="09:00">
-                            <input type="hidden" id="editEndTime" value="09:30">
+                            <input type="hidden" id="taskCategory" value="work">
                         </div>
-                    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label small text-muted">Category</label>
-                        <div class="category-selector d-flex gap-2 flex-wrap">
-                            <button type="button" class="edit-category-btn category-btn work" data-category="work">
-                                <i class="bi bi-briefcase"></i> Work
-                            </button>
-                            <button type="button" class="edit-category-btn category-btn meeting" data-category="meeting">
-                                <i class="bi bi-people"></i> Meeting
-                            </button>
-                            <button type="button" class="edit-category-btn category-btn personal" data-category="personal">
-                                <i class="bi bi-person"></i> Personal
-                            </button>
-                            <button type="button" class="edit-category-btn category-btn learning" data-category="learning">
-                                <i class="bi bi-book"></i> Learning
-                            </button>
+                        <div class="mb-3">
+                            <label for="taskDescription" class="form-label small text-muted">Description
+                                (Optional)</label>
+                            <textarea class="form-control" id="taskDescription" rows="3"
+                                placeholder="Add any notes or details about this task"></textarea>
                         </div>
-                        <input type="hidden" id="editTaskCategory" value="work">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="editTaskDescription" class="form-label small text-muted">Description (Optional)</label>
-                        <textarea class="form-control" id="editTaskDescription" rows="3" 
-                            placeholder="Add any notes or details about this task"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="editTaskStatus" class="form-label small text-muted">Status</label>
-                        <select class="form-select" id="editTaskStatus">
-                            <option value="pending">Pending</option>
-                            <option value="completed">Completed</option>
-                            <option value="partial">Partially Completed</option>
-                            <option value="missed">Missed</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
-                <button type="button" class="btn btn-outline-danger" id="deleteTaskBtn">
-                    <i class="bi bi-trash me-1"></i> Delete
-                </button>
-                <div>
-                    <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary px-4" id="updateTaskBtn">
-                        <i class="bi bi-check-circle me-1"></i> Update
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary px-4" id="saveTaskBtn">
+                        <i class="bi bi-plus-circle me-1"></i> Add Task
                     </button>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+
+    <!-- Edit Task Modal -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1" aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="editTaskModalLabel">Edit Task</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-2">
+                    <form id="editTaskForm">
+                        <input type="hidden" id="editTaskId">
+                        <div class="mb-3">
+                            <label for="editTaskTitle" class="form-label small text-muted">Task Title</label>
+                            <input type="text" class="form-control form-control-lg" id="editTaskTitle"
+                                placeholder="What are you planning to do?" required>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label small text-muted">Time</label>
+                            <div class="time-picker-container shadow-sm rounded p-3 bg-light">
+                                <div class="time-display mb-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="time-display-item text-center">
+                                            <span id="editStartTimeDisplay" class="fs-5 fw-bold">9:00 AM</span>
+                                            <span class="time-label d-block small text-muted d-none">Start</span>
+                                        </div>
+                                        <div class="time-separator px-2">
+                                            <i class="bi bi-arrow-right"></i>
+                                        </div>
+                                        <div class="time-display-item text-center">
+                                            <span id="editEndTimeDisplay" class="fs-5 fw-bold">9:30 AM</span>
+                                            <span class="time-label d-block small text-muted d-none">End</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="time-slider-container">
+                                    <div class="time-labels d-flex justify-content-between small text-muted mb-1">
+                                        <span>8 AM</span>
+                                        <span>12 PM</span>
+                                        <span>4 PM</span>
+                                        <span>8 PM</span>
+                                    </div>
+                                    <div id="editTimeRangeSlider" class="mb-2"></div>
+                                </div>
+                                <div class="duration-badge text-center mt-2 small fw-bold" id="editDurationBadge">
+                                    <i class="bi bi-clock me-1"></i> 30 min
+                                </div>
+                                <input type="hidden" id="editStartTime" value="09:00">
+                                <input type="hidden" id="editEndTime" value="09:30">
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">Category</label>
+                            <div class="category-selector d-flex gap-2 flex-wrap">
+                                <button type="button" class="edit-category-btn category-btn work" data-category="work">
+                                    <i class="bi bi-briefcase"></i> Work
+                                </button>
+                                <button type="button" class="edit-category-btn category-btn meeting"
+                                    data-category="meeting">
+                                    <i class="bi bi-people"></i> Meeting
+                                </button>
+                                <button type="button" class="edit-category-btn category-btn personal"
+                                    data-category="personal">
+                                    <i class="bi bi-person"></i> Personal
+                                </button>
+                                <button type="button" class="edit-category-btn category-btn learning"
+                                    data-category="learning">
+                                    <i class="bi bi-book"></i> Learning
+                                </button>
+                            </div>
+                            <input type="hidden" id="editTaskCategory" value="work">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editTaskDescription" class="form-label small text-muted">Description
+                                (Optional)</label>
+                            <textarea class="form-control" id="editTaskDescription" rows="3"
+                                placeholder="Add any notes or details about this task"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="editTaskStatus" class="form-label small text-muted">Status</label>
+                            <select class="form-select" id="editTaskStatus">
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                                <option value="partial">Partially Completed</option>
+                                <option value="missed">Missed</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-0 pt-0 d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger" id="deleteTaskBtn">
+                        <i class="bi bi-trash me-1"></i> Delete
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary me-2"
+                            data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary px-4" id="updateTaskBtn">
+                            <i class="bi bi-check-circle me-1"></i> Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -428,6 +434,7 @@
 
         // Load tasks from localStorage or create sample data
         function loadTasks() {
+
             const savedTasks = localStorage.getItem('timebloc-tasks');
 
             if (savedTasks) {
@@ -583,49 +590,49 @@
             updateTaskCompletionList();
         }
         // Improved time block generation
-function generateTimeBlocks() {
-    const $calendarContainer = $('#calendarContainer');
-    $calendarContainer.empty();
-    
-    // Create time blocks from 6 AM to 10 PM
-    for (let hour = 6; hour <= 22; hour++) {
-        const $timeBlock = $('<div>', {
-            class: 'time-block',
-            'data-hour': hour
-        });
-        
-        const $timeLabel = $('<div>', {
-            class: 'time-label',
-            text: formatHour(hour)
-        });
-        
-        // Add quarter-hour markers
-        for (let minute = 15; minute < 60; minute += 15) {
-            const $marker = $('<div>', {
-                class: `quarter-hour-marker min-${minute}`
-            });
-            $timeBlock.append($marker);
-        }
-        
-        $timeBlock.append($timeLabel);
-        $calendarContainer.append($timeBlock);
-        
-        // Add click event to create task at this time
-        $timeBlock.on('click', function(e) {
-            // Only trigger if clicking directly on the time block, not on a task
-            if (e.target === this || $(e.target).hasClass('quarter-hour-marker')) {
-                const clickY = e.clientY - $(this).offset().top;
-                const minute = Math.floor(clickY / 15) * 15;
-                openAddTaskModalAtTime(hour, minute);
+        function generateTimeBlocks() {
+            const $calendarContainer = $('#calendarContainer');
+            $calendarContainer.empty();
+
+            // Create time blocks from 6 AM to 10 PM
+            for (let hour = 6; hour <= 22; hour++) {
+                const $timeBlock = $('<div>', {
+                    class: 'time-block',
+                    'data-hour': hour
+                });
+
+                const $timeLabel = $('<div>', {
+                    class: 'time-label',
+                    text: formatHour(hour)
+                });
+
+                // Add quarter-hour markers
+                for (let minute = 15; minute < 60; minute += 15) {
+                    const $marker = $('<div>', {
+                        class: `quarter-hour-marker min-${minute}`
+                    });
+                    $timeBlock.append($marker);
+                }
+
+                $timeBlock.append($timeLabel);
+                $calendarContainer.append($timeBlock);
+
+                // Add click event to create task at this time
+                $timeBlock.on('click', function (e) {
+                    // Only trigger if clicking directly on the time block, not on a task
+                    if (e.target === this || $(e.target).hasClass('quarter-hour-marker')) {
+                        const clickY = e.clientY - $(this).offset().top;
+                        const minute = Math.floor(clickY / 15) * 15;
+                        openAddTaskModalAtTime(hour, minute);
+                    }
+                });
+
+                // Add drag and drop event listeners
+                $timeBlock.on('dragover', handleDragOver);
+                $timeBlock.on('dragleave', handleDragLeave);
+                $timeBlock.on('drop', handleDrop);
             }
-        });
-        
-        // Add drag and drop event listeners
-        $timeBlock.on('dragover', handleDragOver);
-        $timeBlock.on('dragleave', handleDragLeave);
-        $timeBlock.on('drop', handleDrop);
-    }
-}
+        }
 
 
         // Format hour to AM/PM format

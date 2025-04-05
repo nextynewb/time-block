@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Schedule Interface</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4361ee;
+            --secondary-color: #3a0ca3;
+            --accent-color: #f72585;
+            --success-color: #4cc9f0;
+            --warning-color: #f8961e;
+            --danger-color: #f94144;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --border-color: #e9ecef;
+            --text-primary: #212529;
+            --text-secondary: #6c757d;
+            --text-tertiary: #adb5bd;
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+        }
+
+        .header-left h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .date-nav-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .date-nav-btn:hover {
+            background-color: rgba(67, 97, 238, 0.1);
+            color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        #current-date {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .add-task-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 28px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .add-task-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.4);
+        }
+
+        .add-task-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Main Content Layout */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+        }
+
+        /* Schedule Grid Styles */
+        .schedule-container {
+            display: flex;
+            background-color: var(--card-background);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            height: calc(100vh - 140px);
+            min-height: 600px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .schedule-container:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .time-labels {
+            width: 70px;
+            padding-top: 48px;
+            border-right: 1px solid var(--border-color);
+            background-color: var(--card-background);
+            z-index: 2;
+        }
+
+        .time-label {
+            height: 60px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding-right: 12px;
+            font-size: 13px;
+            color: var(--text-tertiary);
+            position: relative;
+            top: -10px;
+            font-weight: 500;
+        }
+
+        .schedule-grid {
+            flex: 1;
+            position: relative;
+            padding-top: 8px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--text-tertiary) transparent;
+            height: auto !important;
+            min-height: 1020px;
+            overflow-y: visible !important;
+        }
+
+        .schedule-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .schedule-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .schedule-grid::-webkit-scrollbar-thumb {
+            background-color: var(--text-tertiary);
+            border-radius: 6px;
+        }
+
+        .time-row {
+            height: 60px;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+        }
+
+        .quarter-hour {
+            height: 15px;
+            border-bottom: 1px dashed rgba(0, 0, 0, 0.05);
+        }
+
+        .quarter-hour:last-child {
+            border-bottom: none;
+        }
+
+        .current-time-indicator {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: var(--accent-color);
+            z-index: 3;
+        }
+
+        .current-time-indicator::before {
+            content: '';
+            position: absolute;
+            left: -5px;
+            top: -4px;
+            width: 10px;
+            height: 10px;
+            background-color: var(--accent-color);
+            border-radius: 50%;
+            box-shadow: 0 0 0 2px rgba(247, 37, 133, 0.3);
+        }
+
+        /* Task Styles */
+        .task {
+            position: absolute;
+            border-radius: var(--radius-sm);
+            padding: 10px 14px;
+            font-size: 14px;
+            color: white;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .task:hover {
+            transform: translateY(-2px) scale(1.01);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+            z-index: 10;
+        }
+
+        .task-name {
+            font-weight: 600;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .task-time {
+            font-size: 12px;
+            opacity: 0.9;
+            font-weight: 500;
+        }
+
+        .task-description {
+            font-size: 12px;
+            margin-top: 5px;
+            opacity: 0.9;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .task-complete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .task-complete-btn:hover {
+            background-color: rgba(255, 255, 255, 0.4);
+            transform: scale(1.1);
+        }
+
+        .task-complete-btn svg {
+            width: 12px;
+            height: 12px;
+            stroke: white;
+            stroke-width: 3;
+        }
+
+        .task.completed {
+            opacity: 0.7;
+        }
+
+        .task.completed .task-name,
+        .task.completed .task-description {
+            text-decoration: line-through;
+        }
+
+        .task.completed .task-complete-btn {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Insights Panel Styles */
+        .insights-panel {
+            background-color: var(--card-background);
+            border-radius: var(--radius-lg);
+            padding: 28px;
+            box-shadow: var(--shadow-md);
+            transition: box-shadow 0.3s ease;
+        }
+
+        .insights-panel:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        .insights-panel h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+            position: relative;
+            display: inline-block;
+        }
+
+        .insights-panel h3::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 40px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+
+        .insights-card {
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .insights-card:last-of-type {
+            border-bottom: none;
+        }
+
+        .insights-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .insights-header h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .insights-percentage {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary-color);
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .progress-bar {
+            height: 8px;
+            background-color: rgba(67, 97, 238, 0.1);
+            border-radius: 4px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .insights-description {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .category-summary {
+            margin-top: 28px;
+        }
+
+        .category-summary h4 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            position: relative;
+            display: inline-block;
+        }
+
+        .category-summary h4::after {
+            content: '';
+            position: absolute;
+            bottom: -6px;
+            left: 0;
+            width: 30px;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+            border-radius: 2px;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 14px;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            transition: background-color 0.2s ease;
+        }
+
+        .category-item:hover {
+            background-color: rgba(67, 97, 238, 0.05);
+        }
+
+        .category-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            margin-right: 12px;
+        }
+
+        .category-name {
+            flex: 1;
+            font-size: 15px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .category-time {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Task Modal */
+        .task-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .task-modal-content {
+            background-color: var(--card-background);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 500px;
+            padding: 28px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            transform: translateY(20px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .task-modal.active .task-modal-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .task-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .task-modal-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .task-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: color 0.2s ease;
+        }
+
+        .task-modal-close:hover {
+            color: var(--accent-color);
+        }
+
+        .task-modal-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .form-group label {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-control {
+            padding: 12px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 15px;
+            color: var(--text-primary);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .form-control::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .time-inputs {
+            display: flex;
+            gap: 12px;
+        }
+
+        .time-inputs .form-group {
+            flex: 1;
+        }
+
+        .task-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .task-modal-btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-cancel {
+            background-color: var(--background-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-cancel:hover {
+            background-color: var(--border-color);
+        }
+
+        .btn-save {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+        }
+
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.4);
+        }
+
+        .btn-delete {
+            background-color: rgba(249, 65, 68, 0.1);
+            color: var(--danger-color);
+            border: none;
+        }
+
+        .btn-delete:hover {
+            background-color: rgba(249, 65, 68, 0.2);
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .empty-state svg {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 24px;
+            color: var(--text-tertiary);
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+        }
+
+        .loading-spinner:after {
+            content: " ";
+            display: block;
+            width: 32px;
+            height: 32px;
+            margin: 4px;
+            border-radius: 50%;
+            border: 6px solid var(--primary-color);
+            border-color: var(--primary-color) transparent var(--primary-color) transparent;
+            animation: loading-spinner 1.2s linear infinite;
+        }
+
+        @keyframes loading-spinner {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr 300px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .insights-panel {
+                order: -1;
+                margin-bottom: 24px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .app-container {
+                padding: 16px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .header-right {
+                margin-top: 16px;
+                align-self: flex-end;
+            }
+
+            .schedule-container {
+                height: auto !important;
+                /* Override any fixed height */
+                min-height: 1020px;
+                /* 17 hours * 60px = 1020px */
+            }
+
+            .time-labels {
+                width: 50px;
+            }
+
+            .time-label {
+                font-size: 11px;
+            }
+
+            .task {
+                padding: 8px 10px;
+            }
+
+            .task-name {
+                font-size: 13px;
+            }
+
+            .task-time,
+            .task-description {
+                font-size: 11px;
+            }
+
+            .insights-panel {
+                padding: 20px;
+            }
+
+            .insights-panel h3 {
+                font-size: 18px;
+            }
+
+            .insights-header h4 {
+                font-size: 15px;
+            }
+
+            .insights-percentage {
+                font-size: 16px;
+            }
+
+            .category-item {
+                padding: 8px;
+            }
+
+            .category-name,
+            .category-time {
+                font-size: 14px;
+            }
+
+            .time-inputs {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .slide-up {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="header-left">
+                <h1>My Schedule</h1>
+                <div class="date-selector">
+                    <button class="date-nav-btn" id="prev-day">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <h2 id="current-date">Sunday, March 30, 2025</h2>
+                    <button class="date-nav-btn" id="next-day">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="add-task-btn" id="add-task-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Add Task
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Schedule Grid -->
+            <div class="schedule-container">
+                <div class="time-labels">
+                    <!-- Time labels will be generated by JS -->
+                </div>
+                <div class="schedule-grid">
+                    <!-- Time grid and tasks will be generated by JS -->
+                    <div class="current-time-indicator" id="current-time-indicator"></div>
+
+                    <!-- Loading spinner -->
+                    <div class="loading-spinner" id="loading-spinner"></div>
+
+                    <!-- Empty state -->
+                    <div class="empty-state" id="empty-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                        <h3>No tasks scheduled</h3>
+                        <p>Your schedule is clear for today. Click "Add Task" to create a new task.</p>
+                        <button class="add-task-btn pulse" id="empty-add-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Add Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Insights Panel -->
+            <div class="insights-panel slide-up">
+                <h3>Insights & Categories</h3>
+
+                <div class="insights-card">
+                    <div class="insights-header">
+                        <h4>Task Completion</h4>
+                        <span class="insights-percentage">68%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 68%"></div>
+                    </div>
+                    <p class="insights-description">5 of 8 tasks completed today</p>
+                </div>
+
+
+                <div class="category-summary">
+                    <h4>Categories</h4>
+                    <!-- Category items will be generated dynamically -->
+                    <div id="category-list">
+                        <!-- Categories will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Edit Modal -->
+    <div class="task-modal" id="task-modal">
+        <div class="task-modal-content">
+            <div class="task-modal-header">
+                <h3 class="task-modal-title">Edit Task</h3>
+                <button class="task-modal-close">&times;</button>
+            </div>
+            <form class="task-modal-form" id="task-form">
+                <input type="hidden" id="task-id">
+
+                <div class="form-group">
+                    <label for="task-name">Task Name</label>
+                    <input type="text" class="form-control" id="task-name" placeholder="Enter task name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-category">Category</label>
+                    <select class="form-control" id="task-category" required>
+                        <!-- Categories will be populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="time-inputs">
+                    <div class="form-group">
+                        <label for="task-start-time">Start Time</label>
+                        <input type="time" class="form-control" id="task-start-time" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="task-end-time">End Time</label>
+                        <input type="time" class="form-control" id="task-end-time" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-description">Description</label>
+                    <textarea class="form-control" id="task-description"
+                        placeholder="Enter task description"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="task-completed">Status</label>
+                    <select class="form-control" id="task-completed">
+                        <option value="false">Not Completed</option>
+                        <option value="true">Completed</option>
+                    </select>
+                </div>
+
+                <div class="task-modal-actions">
+                    <button type="button" class="task-modal-btn btn-delete" id="delete-task-btn">Delete</button>
+                    <button type="button" class="task-modal-btn btn-cancel" id="cancel-edit-btn">Cancel</button>
+                    <button type="submit" class="task-modal-btn btn-save">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../static/script.js"></script>
+</body>
+
+</html>
