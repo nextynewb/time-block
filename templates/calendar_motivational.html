@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Win The Day — TimeBlock</title>
+    <meta name="description" content="TimeBlock — Plan boldly. Focus deeply. Win the day." />
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800;900&family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-yH2dQOox5r5GRA+V5Wm2s3S6Q4T5q0k6Jbxj2o9Qnq1w6Hj8tqjQy9cp7GgHc2E4K0t2X0RE9JwXwO0+3Y4J3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        :root {
+            --bg1: #0f1021;
+            --bg2: #1b1c34;
+            --glass: rgba(255,255,255,0.08);
+            --card: rgba(255,255,255,0.12);
+            --text: #e6e8f0;
+            --muted: #aab1c6;
+            --brand: #7c5cff;
+            --brand-2: #00e5ff;
+            --success: #00f5a0;
+            --warning: #ffc371;
+            --danger: #ff5c7a;
+        }
+
+        * { box-sizing: border-box; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, 'Poppins', sans-serif;
+            color: var(--text);
+            background: radial-gradient(1200px 800px at 10% 10%, #1a1742 0%, rgba(26,23,66,0) 60%),
+                        radial-gradient(1200px 800px at 90% 0%, #0d3b66 0%, rgba(13,59,102,0) 60%),
+                        radial-gradient(1200px 800px at 50% 100%, #641b8c 0%, rgba(100,27,140,0) 60%),
+                        linear-gradient(120deg, #0b0b1a, #101225 60%, #0b0b1a);
+            overflow-x: hidden;
+        }
+
+        /* Animated aurora backdrop */
+        .aurora {
+            position: fixed; inset: -20vmax; z-index: -1; filter: blur(40px) saturate(120%); opacity: 0.55; pointer-events: none;
+            background: conic-gradient(from 0deg at 50% 50%, #7c5cff 0deg, #00e5ff 120deg, #00f5a0 240deg, #ff5c7a 360deg);
+            animation: swirl 22s linear infinite;
+        }
+        @keyframes swirl {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.05); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+
+        .container { width: min(1200px, 92%); margin: 0 auto; }
+        .hero { padding: 72px 0 36px; position: relative; }
+        .badge {
+            display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 10px 16px;
+            background: linear-gradient(90deg, rgba(124,92,255,.18), rgba(0,229,255,.18));
+            border: 1px solid rgba(255,255,255,.15); backdrop-filter: blur(8px); color: var(--muted);
+            letter-spacing: .4px; text-transform: uppercase; font-weight: 700; font-size: 12px;
+        }
+        .title { font-size: clamp(36px, 6vw, 64px); line-height: 1.05; margin: 16px 0 12px; font-weight: 900; }
+        .title .gradient {
+            background: linear-gradient(90deg, #a78bfa, #22d3ee, #34d399, #f87171);
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            text-shadow: 0 10px 40px rgba(124,92,255,.25);
+        }
+        .subtitle { color: var(--muted); font-size: clamp(16px, 2.2vw, 20px); max-width: 900px; }
+
+        .cta-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 22px; }
+        .btn {
+            appearance: none; border: none; cursor: pointer; border-radius: 14px; padding: 14px 18px; font-size: 16px; font-weight: 700;
+            transition: transform .15s ease, box-shadow .15s ease, background .2s ease; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .btn-primary {
+            color: #0d0f1a; background: linear-gradient(90deg, #7c5cff, #00e5ff);
+            box-shadow: 0 10px 24px rgba(0,229,255,.22), 0 6px 12px rgba(124,92,255,.18);
+        }
+        .btn-primary:hover { transform: translateY(-1px) scale(1.01); }
+        .btn-ghost {
+            color: var(--text); background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,.1); transform: translateY(-1px); }
+
+        .kpis { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-top: 28px; }
+        .card { background: var(--glass); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 18px; backdrop-filter: blur(10px); }
+        .kpi { display: flex; align-items: center; gap: 14px; }
+        .kpi i { font-size: 18px; }
+        .kpi .value { font-size: 26px; font-weight: 900; }
+        .kpi .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+        .quote-ticker { margin-top: 18px; display: flex; gap: 10px; align-items: center; color: var(--muted); font-style: italic; opacity: .9; }
+        .quote { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .divider { height: 28px; opacity: .5; background:
+            radial-gradient(circle at 20% 40%, rgba(124,92,255,.25), transparent 40%),
+            radial-gradient(circle at 80% 60%, rgba(0,229,255,.25), transparent 40%);
+            mask: linear-gradient(#000 50%, rgba(0,0,0,0));
+        }
+
+        .section { padding: 12px 0 32px; }
+        .section-title { margin-bottom: 12px; font-weight: 800; letter-spacing: .3px; }
+
+        .calendar-wrap { border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,.14); box-shadow: 0 20px 60px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.35);
+            background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.04)); }
+        .calendar-frame { width: 100%; height: 70vh; border: 0; display: block; background: #0b0b1a; }
+        .calendar-actions { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-top: 1px solid rgba(255,255,255,.08); background: rgba(0,0,0,.18); }
+
+        .pill {
+            display: inline-flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14);
+        }
+        .streak { color: var(--warning); font-weight: 800; }
+
+        .footer { padding: 28px 0 48px; color: var(--muted); text-align: center; }
+
+        @media (max-width: 900px) {
+            .kpis { grid-template-columns: repeat(2, minmax(0,1fr)); }
+            .calendar-frame { height: 68vh; }
+        }
+        @media (max-width: 520px) {
+            .kpis { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="aurora"></div>
+
+    <header class="hero container">
+        <div class="badge"><i class="fa-solid fa-bolt"></i> Win the day</div>
+        <h1 class="title">
+            Design your time. <span class="gradient">Dominate your focus.</span> Stack wins.
+        </h1>
+        <p class="subtitle">Every block is a promise to your future self. Plan with intention, execute with energy, and celebrate momentum. Show up for 25 minutes — you’ll be surprised what compounds.</p>
+
+        <div class="cta-row">
+            <button class="btn btn-primary" id="startFocusBtn"><i class="fa-solid fa-fire"></i> Start focus now</button>
+            <a class="btn btn-ghost" href="/" target="_blank" rel="noopener"><i class="fa-solid fa-calendar"></i> Open classic calendar</a>
+            <span class="pill" id="nowPill"><i class="fa-regular fa-clock"></i> <span id="nowText">—</span></span>
+        </div>
+
+        <div class="kpis">
+            <div class="card kpi">
+                <i class="fa-solid fa-medal" style="color: var(--brand);"></i>
+                <div>
+                    <div class="value" id="kpiCompletion">—%</div>
+                    <div class="label">Completion rate (today)</div>
+                </div>
+            </div>
+            <div class="card kpi">
+                <i class="fa-solid fa-hourglass-half" style="color: var(--brand-2);"></i>
+                <div>
+                    <div class="value" id="kpiFocusTime">—m</div>
+                    <div class="label">Total focus time</div>
+                </div>
+            </div>
+            <div class="card kpi">
+                <i class="fa-solid fa-chart-line" style="color: var(--success);"></i>
+                <div>
+                    <div class="value" id="kpiSessions">—</div>
+                    <div class="label">Sessions today</div>
+                </div>
+            </div>
+            <div class="card kpi">
+                <i class="fa-solid fa-fire" style="color: var(--warning);"></i>
+                <div>
+                    <div class="value" id="kpiStreak">—</div>
+                    <div class="label">Day streak</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="quote-ticker">
+            <i class="fa-solid fa-quote-left"></i>
+            <span class="quote" id="quoteText">“Your future is decided by what you do today, not tomorrow.”</span>
+        </div>
+    </header>
+
+    <div class="divider"></div>
+
+    <main class="container section">
+        <h2 class="section-title">Your command center</h2>
+        <div class="calendar-wrap">
+            <iframe class="calendar-frame" id="calendarFrame" src="/" title="TimeBlock Calendar"></iframe>
+            <div class="calendar-actions">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <span class="pill"><i class="fa-solid fa-bullseye"></i> <span id="sessionStatus">No active session</span></span>
+                    <span class="pill"><i class="fa-solid fa-battery-three-quarters"></i> Focus score avg: <span id="avgFocus">—</span></span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-ghost" id="fullscreenBtn"><i class="fa-solid fa-maximize"></i> Fullscreen</button>
+                    <a class="btn btn-primary" href="/" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> Open in new tab</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer container">
+        Built with intention • Make it count today
+    </footer>
+
+    <script>
+        const el = (id) => document.getElementById(id);
+
+        // Clock pill
+        function updateNow() {
+            const now = new Date();
+            const options = { weekday: 'long', hour: '2-digit', minute: '2-digit' };
+            el('nowText').textContent = now.toLocaleDateString(undefined, options);
+        }
+        updateNow(); setInterval(updateNow, 1000 * 30);
+
+        // Quotes carousel
+        const quotes = [
+            'Small wins compound into unstoppable momentum.',
+            'You don\'t need more time — you need more intention.',
+            'Discipline is choosing what you want most over what you want now.',
+            'Focus is your superpower. Protect it.',
+            'Build the life you want, 25 minutes at a time.',
+            'Motion doesn\'t equal progress. Results do.',
+            'Be the person your goals demand.'
+        ];
+        let qIndex = 0;
+        setInterval(() => {
+            qIndex = (qIndex + 1) % quotes.length;
+            el('quoteText').textContent = '“' + quotes[qIndex] + '”';
+        }, 6500);
+
+        // Stats
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/get_pomodoro_stats?range=today');
+                const data = await res.json();
+                const s = (data && data.stats) ? data.stats : null;
+                if (!s) return;
+                el('kpiCompletion').textContent = (s.completion_rate ?? 0) + '%';
+                el('kpiFocusTime').textContent = Math.round(s.total_focus_time_minutes ?? 0) + 'm';
+                el('kpiSessions').textContent = s.completed_sessions ?? 0;
+                el('kpiStreak').textContent = (s.current_streak_days ?? 0) + 'd';
+                el('avgFocus').textContent = (s.avg_focus_score ?? 0).toFixed(1) + '/5';
+            } catch (e) { /* ignore */ }
+        }
+        loadStats(); setInterval(loadStats, 1000 * 60);
+
+        // Active session
+        async function pollActiveSession() {
+            try {
+                const res = await fetch('/api/get_active_session');
+                const data = await res.json();
+                const session = data && data.session ? data.session : null;
+                if (!session) { el('sessionStatus').textContent = 'No active session'; return; }
+                const kind = session.session_type || 'work';
+                const status = session.status || 'active';
+                const remaining = session.time_remaining_seconds ?? 0;
+                const mins = Math.floor(remaining / 60);
+                const secs = String(remaining % 60).padStart(2, '0');
+                el('sessionStatus').textContent = kind + ' • ' + status + ' • ' + mins + ':' + secs + ' left';
+            } catch (e) { /* ignore */ }
+        }
+        pollActiveSession(); setInterval(pollActiveSession, 1500);
+
+        // Confetti on start focus
+        el('startFocusBtn').addEventListener('click', () => {
+            const duration = 1500; const end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 4, spread: 70, startVelocity: 38, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            })();
+            const f = document.getElementById('calendarFrame');
+            if (f && f.contentWindow) f.contentWindow.focus();
+        });
+
+        // Fullscreen toggle
+        el('fullscreenBtn').addEventListener('click', () => {
+            const frame = el('calendarFrame');
+            if (!document.fullscreenElement) {
+                frame.requestFullscreen?.();
+            } else {
+                document.exitFullscreen?.();
+            }
+        });
+    </script>
+</body>
+</html>
+
+
+
+
